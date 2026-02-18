@@ -12,6 +12,7 @@ export default function SignInPage() {
   const router = useRouter();
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [error, setError] = useState<string | null>(null);
+  const [errorAction, setErrorAction] = useState<"signIn" | "signUp" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect to dashboard once authenticated (handles both fresh sign-in and returning visit)
@@ -30,9 +31,72 @@ export default function SignInPage() {
     );
   }
 
+  function getErrorMessage(err: unknown): { message: string; action?: "signUp" | "signIn" } {
+    const raw = err instanceof Error ? err.message : String(err);
+    const lower = raw.toLowerCase();
+
+    if (lower.includes("timed out")) {
+      return { message: "Request timed out. Please check your connection and try again." };
+    }
+
+    if (flow === "signIn") {
+      // Convex Auth: invalid credentials, user not found, wrong password variants
+      if (
+        lower.includes("could not verify") ||
+        lower.includes("invalid credentials") ||
+        lower.includes("invalid password") ||
+        lower.includes("wrong password") ||
+        lower.includes("unauthorized")
+      ) {
+        return { message: "Invalid email or password. Please try again." };
+      }
+      if (
+        lower.includes("user not found") ||
+        lower.includes("no user") ||
+        lower.includes("account not found") ||
+        lower.includes("does not exist")
+      ) {
+        return {
+          message: "No account found with this email. Create one to get started!",
+          action: "signUp",
+        };
+      }
+    }
+
+    if (flow === "signUp") {
+      if (
+        lower.includes("already exists") ||
+        lower.includes("already registered") ||
+        lower.includes("duplicate") ||
+        lower.includes("already been used") ||
+        lower.includes("unique")
+      ) {
+        return {
+          message: "An account with this email already exists. Try signing in instead.",
+          action: "signIn",
+        };
+      }
+      if (lower.includes("password") && (lower.includes("weak") || lower.includes("short") || lower.includes("requirements"))) {
+        return { message: "Password is too weak. Use at least 8 characters with a mix of letters and numbers." };
+      }
+    }
+
+    if (lower.includes("fetch") || lower.includes("network") || lower.includes("failed to fetch")) {
+      return { message: "Network error. Please check your internet connection and try again." };
+    }
+
+    // Fallback: show a contextual message rather than raw server error
+    return {
+      message: flow === "signIn"
+        ? "Sign-in failed. Please check your email and password."
+        : "Sign-up failed. Please try again or use a different email.",
+    };
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setErrorAction(null);
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
@@ -41,7 +105,7 @@ export default function SignInPage() {
     try {
       // Race signIn against a timeout so it doesn't hang forever
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Sign-in timed out after 15 seconds. Please try again.")), 15000)
+        setTimeout(() => reject(new Error("timed out")), 15000)
       );
 
       const result = await Promise.race([
@@ -55,16 +119,16 @@ export default function SignInPage() {
         return;
       }
 
-      setError(
-        flow === "signIn"
-          ? "Sign-in failed. Check your email and password."
-          : "Sign-up failed. That email may already be registered."
-      );
+      const { message, action } = getErrorMessage(new Error(
+        flow === "signIn" ? "invalid credentials" : "sign-up failed"
+      ));
+      setError(message);
+      setErrorAction(action ?? null);
       setIsSubmitting(false);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
-      );
+      const { message, action } = getErrorMessage(err);
+      setError(message);
+      setErrorAction(action ?? null);
       setIsSubmitting(false);
     }
   }
@@ -93,7 +157,7 @@ export default function SignInPage() {
         <div className="mb-6 flex rounded-full bg-ink p-1">
           <button
             type="button"
-            onClick={() => { setFlow("signIn"); setError(null); }}
+            onClick={() => { setFlow("signIn"); setError(null); setErrorAction(null); }}
             className={`flex-1 rounded-full py-2 text-sm font-semibold transition-all cursor-pointer ${
               flow === "signIn"
                 ? "bg-surface text-cream shadow-sm"
@@ -104,7 +168,7 @@ export default function SignInPage() {
           </button>
           <button
             type="button"
-            onClick={() => { setFlow("signUp"); setError(null); }}
+            onClick={() => { setFlow("signUp"); setError(null); setErrorAction(null); }}
             className={`flex-1 rounded-full py-2 text-sm font-semibold transition-all cursor-pointer ${
               flow === "signUp"
                 ? "bg-surface text-cream shadow-sm"
@@ -150,7 +214,20 @@ export default function SignInPage() {
           {/* Error message */}
           {error && (
             <div className="rounded-lg border border-danger/20 bg-danger/10 px-3 py-2.5 text-sm text-danger">
-              {error}
+              <p>{error}</p>
+              {errorAction && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFlow(errorAction);
+                    setError(null);
+                    setErrorAction(null);
+                  }}
+                  className="mt-1 font-semibold text-brand hover:underline cursor-pointer"
+                >
+                  {errorAction === "signUp" ? "Create an account" : "Go to Sign In"}
+                </button>
+              )}
             </div>
           )}
 
@@ -175,7 +252,7 @@ export default function SignInPage() {
             : "Already have an account? "}
           <button
             type="button"
-            onClick={() => { setFlow(flow === "signIn" ? "signUp" : "signIn"); setError(null); }}
+            onClick={() => { setFlow(flow === "signIn" ? "signUp" : "signIn"); setError(null); setErrorAction(null); }}
             className="font-semibold text-brand hover:underline cursor-pointer"
           >
             {flow === "signIn" ? "Sign up" : "Sign in"}
