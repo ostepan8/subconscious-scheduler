@@ -40,8 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# convex generated files (regenerated on deploy)
-convex/_generated/
-
 # remotion (standalone video tool, not part of the app)
 /remotion
