@@ -1,4 +1,5 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import cronParser from "cron-parser";
 
@@ -108,7 +109,8 @@ export const create = mutation({
     if (count >= 50) throw new Error("Maximum 50 tasks allowed");
 
     const now = Date.now();
-    return ctx.db.insert("tasks", {
+    const nextRunAt = computeNextRunAt(args.schedule, args.timezone);
+    const taskId = await ctx.db.insert("tasks", {
       name: args.name,
       type: args.type,
       prompt: args.prompt,
@@ -119,9 +121,16 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
       consecutiveFailures: 0,
-      nextRunAt: computeNextRunAt(args.schedule, args.timezone),
+      nextRunAt,
       timezone: args.timezone,
     });
+
+    // Schedule the first run at the exact time
+    if (nextRunAt) {
+      await ctx.scheduler.runAt(nextRunAt, internal.triggerTask.triggerInternal, { id: taskId });
+    }
+
+    return taskId;
   },
 });
 
@@ -159,6 +168,13 @@ export const update = mutation({
     }
 
     await ctx.db.patch(id, patch);
+
+    // Reschedule if nextRunAt changed and task is active
+    const newNextRunAt = patch.nextRunAt as number | undefined;
+    const finalStatus = (updates.status ?? task.status) as string;
+    if (newNextRunAt && finalStatus === "active") {
+      await ctx.scheduler.runAt(newNextRunAt, internal.triggerTask.triggerInternal, { id });
+    }
   },
 });
 
@@ -207,7 +223,8 @@ export const createFromTool = internalMutation({
     if (count >= 50) throw new Error("Maximum 50 tasks allowed");
 
     const now = Date.now();
-    return ctx.db.insert("tasks", {
+    const nextRunAt = computeNextRunAt(args.schedule, args.timezone);
+    const taskId = await ctx.db.insert("tasks", {
       name: args.name,
       type: args.type,
       prompt: args.prompt,
@@ -218,9 +235,15 @@ export const createFromTool = internalMutation({
       createdAt: now,
       updatedAt: now,
       consecutiveFailures: 0,
-      nextRunAt: computeNextRunAt(args.schedule, args.timezone),
+      nextRunAt,
       timezone: args.timezone,
     });
+
+    if (nextRunAt) {
+      await ctx.scheduler.runAt(nextRunAt, internal.triggerTask.triggerInternal, { id: taskId });
+    }
+
+    return taskId;
   },
 });
 
@@ -263,6 +286,12 @@ export const updateAfterRun = internalMutation({
     if (status !== undefined) patch.status = status;
     if (nextRunAt !== undefined) patch.nextRunAt = nextRunAt;
     await ctx.db.patch(id, patch);
+
+    // Schedule the next run at the exact time (skip if task is errored/paused)
+    const finalStatus = status ?? (await ctx.db.get(id))?.status;
+    if (nextRunAt && finalStatus === "active") {
+      await ctx.scheduler.runAt(nextRunAt, internal.triggerTask.triggerInternal, { id });
+    }
   },
 });
 

@@ -6,7 +6,28 @@ type ContentPart =
   | { type: "text"; text: string }
   | { type: "proposal"; data: TaskProposal };
 
-function parseContent(content: string): ContentPart[] {
+/**
+ * If the content is a JSON string with a final_answer or answer field,
+ * extract that field value. This handles cases where the server-side
+ * parsing didn't properly unwrap the AI response.
+ */
+function unwrapJsonAnswer(content: string): string {
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("{")) return content;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed.final_answer === "string") return parsed.final_answer;
+    if (typeof parsed.answer === "string") return parsed.answer;
+  } catch {
+    // Not JSON — return as-is
+  }
+  return content;
+}
+
+function parseContent(raw: string): ContentPart[] {
+  // First, unwrap JSON envelope if present
+  const content = unwrapJsonAnswer(raw);
+
   const parts: ContentPart[] = [];
   const regex = /:::task-proposal\n([\s\S]*?)\n:::/g;
   let lastIndex = 0;

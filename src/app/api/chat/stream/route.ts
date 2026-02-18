@@ -4,6 +4,72 @@ import { buildChatTools } from "@/lib/chat-tools";
 import { buildSystemPrompt, CHAT_ENGINE, extractThoughts } from "@/lib/chat-config";
 import { getChatMessages, saveChatMessage } from "@/lib/chat-storage";
 
+/**
+ * Extract the user-facing answer from the raw streamed content.
+ * The AI may return a JSON object with final_answer/answer, plain text,
+ * or a mix of text with embedded JSON. This function tries multiple
+ * strategies in order of reliability.
+ */
+function extractAnswer(raw: string): string {
+  const trimmed = raw.trim();
+
+  // Strategy 1: Direct JSON parse (content is a clean JSON object)
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed === "object" && parsed !== null) {
+      const text = typeof parsed.final_answer === "string"
+        ? parsed.final_answer
+        : typeof parsed.answer === "string"
+          ? parsed.answer
+          : null;
+      if (text) return text;
+    }
+  } catch {
+    // Not valid JSON — continue to next strategy
+  }
+
+  // Strategy 2: Find a JSON object embedded in surrounding text
+  const jsonStart = trimmed.indexOf("{");
+  const jsonEnd = trimmed.lastIndexOf("}");
+  if (jsonStart !== -1 && jsonEnd > jsonStart) {
+    try {
+      const parsed = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));
+      if (typeof parsed === "object" && parsed !== null) {
+        const text = typeof parsed.final_answer === "string"
+          ? parsed.final_answer
+          : typeof parsed.answer === "string"
+            ? parsed.answer
+            : null;
+        if (text) return text;
+      }
+    } catch {
+      // Embedded JSON didn't parse — continue
+    }
+  }
+
+  // Strategy 3: Regex extraction for final_answer or answer value
+  // Handles cases where JSON is malformed or content is very large
+  for (const key of ["final_answer", "answer"]) {
+    const regex = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`)
+    const m = trimmed.match(regex);
+    if (m) {
+      return m[1]
+        .replace(/\\n/g, "\n")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\");
+    }
+  }
+
+  // Strategy 4: Check for "Final Answer:" text prefix
+  const prefixMatch = trimmed.match(/(?:Final Answer|final_answer):\s*([\s\S]*)/i);
+  if (prefixMatch) {
+    return prefixMatch[1].trim();
+  }
+
+  // Strategy 5: Return raw content as-is
+  return trimmed || "I processed your request. Check the dashboard for updates.";
+}
+
 export async function POST(req: NextRequest) {
   const { message, conversationId } = (await req.json()) as {
     message: string;
@@ -90,43 +156,8 @@ ${message}`;
               lastSentThoughts.push(thought);
             }
           } else if (event.type === "done") {
-            // Parse final answer
-            let answer = "";
-            try {
-              const parsed = JSON.parse(fullContent);
-              // Check for final_answer first (common AI response format), then answer
-              if (typeof parsed.final_answer === "string") {
-                answer = parsed.final_answer;
-              } else if (typeof parsed.answer === "string") {
-                answer = parsed.answer;
-              } else {
-                // Fallback: stringify whatever we got
-                answer = JSON.stringify(parsed.final_answer ?? parsed.answer ?? parsed);
-              }
-            } catch {
-              // Fallback: try to extract final_answer or answer field with regex
-              const finalAnswerMatch = fullContent.match(
-                /"final_answer"\s*:\s*"((?:[^"\\]|\\.)*)"/,
-              );
-              const answerMatch = fullContent.match(
-                /"answer"\s*:\s*"((?:[^"\\]|\\.)*)"/,
-              );
-              const match = finalAnswerMatch || answerMatch;
-              if (match) {
-                answer = match[1]
-                  .replace(/\\n/g, "\n")
-                  .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, "\\");
-              } else {
-                answer = fullContent || "I processed your request. Check the dashboard for updates.";
-              }
-            }
-
-            // Extract just the Final Answer if the response has that text prefix format
-            const finalAnswerPrefix = answer.match(/(?:Final Answer|final_answer):\s*([\s\S]*)/i);
-            if (finalAnswerPrefix) {
-              answer = finalAnswerPrefix[1].trim();
-            }
+            // Parse final answer — try multiple strategies
+            const answer = extractAnswer(fullContent);
 
             // Save assistant message
             await saveChatMessage(conversationId, {

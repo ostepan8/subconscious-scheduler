@@ -46,7 +46,7 @@ export const trigger = action({
       body: JSON.stringify({
         engine: task.engine,
         input: {
-          instructions: task.prompt,
+          instructions: task.prompt + "\n\nIMPORTANT: Write your response in plain text only. Do not use markdown formatting (no **, ##, ---, `, or | table syntax). Write naturally as if you were a knowledgeable person sending a colleague a clear, well-organized email. Use short paragraphs and line breaks for readability.",
           tools: task.tools || [],
         },
       }),
@@ -184,7 +184,7 @@ export const triggerInternal = internalAction({
       body: JSON.stringify({
         engine: task.engine,
         input: {
-          instructions: task.prompt,
+          instructions: task.prompt + "\n\nIMPORTANT: Write your response in plain text only. Do not use markdown formatting (no **, ##, ---, `, or | table syntax). Write naturally as if you were a knowledgeable person sending a colleague a clear, well-organized email. Use short paragraphs and line breaks for readability.",
           tools: task.tools || [],
         },
       }),
@@ -299,26 +299,64 @@ function extractError(completed: Record<string, unknown>): string {
   return "Run failed";
 }
 
-function formatResultForEmail(result: unknown): string | null {
+function extractResultText(result: unknown): string | null {
   if (!result) return null;
   if (typeof result === "string") return result || null;
   if (typeof result === "object") {
     const r = result as Record<string, unknown>;
-    // Check for common result shapes
-    if ("output" in r && typeof r.output === "string" && r.output) return r.output;
-    if ("answer" in r && typeof r.answer === "string" && r.answer) return r.answer;
-    if ("text" in r && typeof r.text === "string" && r.text) return r.text;
-    if ("content" in r && typeof r.content === "string" && r.content) return r.content;
-    // Check for empty results
+    // Extract the actual answer from common result shapes
+    const raw =
+      (typeof r.answer === "string" && r.answer) ||
+      (typeof r.output === "string" && r.output) ||
+      (typeof r.text === "string" && r.text) ||
+      (typeof r.content === "string" && r.content) ||
+      null;
+    if (raw) return raw;
     const entries = Object.entries(r);
     const allEmpty = entries.length > 0 && entries.every(([, v]) => v === "" || v === null || v === undefined);
     if (allEmpty) return null;
+    // Try to extract from nested JSON string
+    try {
+      const jsonStr = JSON.stringify(r);
+      const answerMatch = jsonStr.match(/"(?:answer|final_answer|output)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (answerMatch) {
+        return answerMatch[1]
+          .replace(/\\n/g, "\n")
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, "\\");
+      }
+    } catch { /* ignore */ }
   }
-  try {
-    return JSON.stringify(result, null, 2);
-  } catch {
-    return String(result);
-  }
+  try { return JSON.stringify(result, null, 2); } catch { return String(result); }
+}
+
+/** Strip markdown formatting to produce clean plain text */
+function stripMarkdown(text: string): string {
+  return text
+    // Remove bold/italic markers
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    // Remove heading markers
+    .replace(/^#{1,6}\s+/gm, "")
+    // Remove horizontal rules
+    .replace(/^---+$/gm, "")
+    // Remove markdown links, keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    // Remove markdown table alignment rows
+    .replace(/^\|[-:\s|]+\|$/gm, "")
+    // Clean up table pipes into readable format
+    .replace(/^\|(.+)\|$/gm, (_, row) =>
+      row.split("|").map((c: string) => c.trim()).filter(Boolean).join("  —  ")
+    )
+    // Remove backticks
+    .replace(/`([^`]+)`/g, "$1")
+    // Remove "Thought:" preamble blocks
+    .replace(/\*?Thought\*?:.*?\n---/gs, "")
+    // Collapse 3+ newlines into 2
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 async function sendNotificationsForTask(
@@ -326,8 +364,8 @@ async function sendNotificationsForTask(
   taskId: Id<"tasks">,
   taskName: string,
   status: string,
-  durationMs: number,
-  runId: string,
+  _durationMs: number,
+  _runId: string,
   error?: string,
   result?: unknown,
 ) {
@@ -337,9 +375,8 @@ async function sendNotificationsForTask(
 
     const isSuccess = status === "succeeded";
     const isFailed = status === "failed";
-    const statusLabel = isSuccess ? "Completed" : "Failed";
-    const duration = `${(durationMs / 1000).toFixed(1)}s`;
-    const resultText = formatResultForEmail(result);
+    const rawText = extractResultText(result);
+    const cleanText = rawText ? stripMarkdown(rawText) : null;
 
     for (const channel of prefs.channels as any[]) {
       const shouldSend =
@@ -351,40 +388,18 @@ async function sendNotificationsForTask(
         const from = process.env.RESEND_FROM_EMAIL || "notifications@yourdomain.com";
         if (!apiKey || !channel.to) continue;
 
-        // Subject: use custom or default
-        const subject = channel.customSubject
-          ? channel.customSubject
-          : `[Task] ${taskName}: ${statusLabel}`;
+        const subject = channel.customSubject || taskName;
 
-        // Body: use custom template or default
         let body: string;
-        const includeResult = channel.includeResult !== false;
-        const truncated = resultText
-          ? resultText.length > 5000
-            ? resultText.slice(0, 5000) + "\n\n... (truncated)"
-            : resultText
-          : "";
-
-        if (channel.customBody) {
-          // Replace {{...agentResponse}} placeholder with actual agent output
-          if (channel.customBody.includes("{{...agentResponse}}")) {
-            body = channel.customBody.replace(
-              /\{\{\.\.\.agentResponse\}\}/g,
-              truncated || "(no output)",
-            );
-          } else {
-            // No placeholder found — use custom body and append result
-            body = channel.customBody;
-            if (includeResult && truncated) {
-              body += `\n\n--- Agent Output ---\n${truncated}`;
-            }
-          }
+        if (isFailed) {
+          body = `Your scheduled task "${taskName}" failed to complete.\n\n${error || "An unknown error occurred. Check the dashboard for details."}`;
+        } else if (channel.customBody && channel.customBody.includes("{{...agentResponse}}")) {
+          body = channel.customBody.replace(
+            /\{\{\.\.\.agentResponse\}\}/g,
+            cleanText || "(No results were returned.)",
+          );
         } else {
-          body = `Task: ${taskName}\nStatus: ${statusLabel}\nDuration: ${duration}\nRun ID: ${runId || "N/A"}`;
-          if (error) body += `\nError: ${error}`;
-          if (includeResult && truncated) {
-            body += `\n\n--- Agent Output ---\n${truncated}`;
-          }
+          body = cleanText || "The task completed but returned no output.";
         }
 
         await fetch("https://api.resend.com/emails", {
