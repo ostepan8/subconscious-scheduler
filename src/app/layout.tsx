@@ -26,7 +26,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ConvexAuthNextjsServerProvider>
-      <html lang="en">
+      <html lang="en" translate="no">
+        <head>
+          <meta name="google" content="notranslate" />
+        </head>
         <body className={`${manrope.variable} ${jetbrainsMono.variable} font-[family-name:var(--font-manrope)] antialiased`}>
           <ConvexClientProvider>
             <nav className="sticky top-0 z-40 border-b border-edge/60 bg-ink/90 backdrop-blur-xl">
