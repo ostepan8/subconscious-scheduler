@@ -353,7 +353,7 @@ function stripMarkdown(text: string): string {
     // Remove backticks
     .replace(/`([^`]+)`/g, "$1")
     // Remove "Thought:" preamble blocks
-    .replace(/\*?Thought\*?:.*?\n---/gs, "")
+    .replace(/\*?Thought\*?:[^\n]*\n---/g, "")
     // Collapse 3+ newlines into 2
     .replace(/\n{3,}/g, "\n\n")
     .trim();
