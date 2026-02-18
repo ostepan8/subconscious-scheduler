@@ -2,8 +2,19 @@ import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import cronParser from "cron-parser";
 
 const SUBCONSCIOUS_API = "https://api.subconscious.dev/v1";
+
+function computeNextRunAt(schedule: string, timezone?: string): number | undefined {
+  try {
+    const options = timezone ? { tz: timezone } : {};
+    const interval = cronParser.parseExpression(schedule, options);
+    return interval.next().toDate().getTime();
+  } catch {
+    return undefined;
+  }
+}
 
 export const trigger = action({
   args: { id: v.id("tasks") },
@@ -106,6 +117,7 @@ export const trigger = action({
         lastRunStatus: "failed",
         consecutiveFailures: (task.consecutiveFailures || 0) + 1,
         status: (task.consecutiveFailures || 0) + 1 >= 5 ? "error" : undefined,
+        nextRunAt: computeNextRunAt(task.schedule, task.timezone),
       });
       return { success: false, error: "Timed out" };
     }
@@ -133,6 +145,7 @@ export const trigger = action({
       lastRunStatus: runStatus,
       consecutiveFailures: failures,
       status: failures >= 5 ? "error" : undefined,
+      nextRunAt: computeNextRunAt(task.schedule, task.timezone),
     });
 
     // Send notifications
@@ -237,6 +250,7 @@ export const triggerInternal = internalAction({
         lastRunStatus: "failed",
         consecutiveFailures: (task.consecutiveFailures || 0) + 1,
         status: (task.consecutiveFailures || 0) + 1 >= 5 ? "error" : undefined,
+        nextRunAt: computeNextRunAt(task.schedule, task.timezone),
       });
       return;
     }
@@ -264,6 +278,7 @@ export const triggerInternal = internalAction({
       lastRunStatus: runStatus,
       consecutiveFailures: failures,
       status: failures >= 5 ? "error" : undefined,
+      nextRunAt: computeNextRunAt(task.schedule, task.timezone),
     });
 
     await sendNotificationsForTask(ctx, id, task.name, runStatus, durationMs, run.runId, errorMessage, completed.result);

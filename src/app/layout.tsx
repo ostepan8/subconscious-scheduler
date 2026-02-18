@@ -6,6 +6,7 @@ import UserMenu from "@/components/auth/UserMenu";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Layers } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
@@ -33,12 +34,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body className={`${manrope.variable} ${jetbrainsMono.variable} font-[family-name:var(--font-manrope)] antialiased`}>
           <ConvexClientProvider>
             <nav className="sticky top-0 z-40 border-b border-edge/60 bg-ink/90 backdrop-blur-xl">
-              <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+              <div className="flex h-14 items-center justify-between px-8">
                 <Link href="/dashboard" className="flex items-center gap-3">
                   <Image src="/Subconscious_Logo.png" alt="Subconscious" width={140} height={26} priority style={{ objectFit: "contain" }} />
                   <span className="rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">Scheduler</span>
                 </Link>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <a href="https://docs.subconscious.dev" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-subtle transition-colors hover:bg-surface hover:text-cream">
                     <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />
                     Docs
@@ -55,12 +56,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <Layers className="h-3.5 w-3.5" strokeWidth={1.75} />
                     Platform
                   </a>
-                  <div className="mx-1 h-4 w-px bg-edge/60" />
+                  <div className="mx-3 h-5 w-px bg-edge/60" />
                   <UserMenu />
                 </div>
               </div>
             </nav>
             {children}
+            <Analytics />
           </ConvexClientProvider>
         </body>
       </html>

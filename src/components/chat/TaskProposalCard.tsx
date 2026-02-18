@@ -32,6 +32,7 @@ export default function TaskProposalCard({ proposal }: { proposal: TaskProposal 
         schedule: proposal.schedule,
         engine: proposal.engine || "tim",
         tools: DEFAULT_TOOLS,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
 
       // Auto-setup email notifications if email was provided

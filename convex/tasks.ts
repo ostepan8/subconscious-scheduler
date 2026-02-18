@@ -1,5 +1,16 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import cronParser from "cron-parser";
+
+function computeNextRunAt(schedule: string, timezone?: string): number | undefined {
+  try {
+    const options = timezone ? { tz: timezone } : {};
+    const interval = cronParser.parseExpression(schedule, options);
+    return interval.next().toDate().getTime();
+  } catch {
+    return undefined;
+  }
+}
 
 // ── Queries ──
 
@@ -90,6 +101,7 @@ export const create = mutation({
     schedule: v.string(),
     engine: v.string(),
     tools: v.optional(v.array(v.any())),
+    timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const count = (await ctx.db.query("tasks").collect()).length;
@@ -107,6 +119,8 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
       consecutiveFailures: 0,
+      nextRunAt: computeNextRunAt(args.schedule, args.timezone),
+      timezone: args.timezone,
     });
   },
 });
@@ -122,6 +136,7 @@ export const update = mutation({
     engine: v.optional(v.string()),
     tools: v.optional(v.array(v.any())),
     nextRunAt: v.optional(v.number()),
+    timezone: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...updates }) => {
     const task = await ctx.db.get(id);
@@ -135,7 +150,13 @@ export const update = mutation({
     if (updates.status !== undefined) patch.status = updates.status;
     if (updates.engine !== undefined) patch.engine = updates.engine;
     if (updates.tools !== undefined) patch.tools = updates.tools;
-    if (updates.nextRunAt !== undefined) patch.nextRunAt = updates.nextRunAt;
+    if (updates.timezone !== undefined) patch.timezone = updates.timezone;
+    if (updates.nextRunAt !== undefined) {
+      patch.nextRunAt = updates.nextRunAt;
+    } else if (updates.schedule !== undefined) {
+      const tz = updates.timezone ?? task.timezone;
+      patch.nextRunAt = computeNextRunAt(updates.schedule, tz);
+    }
 
     await ctx.db.patch(id, patch);
   },
@@ -179,6 +200,7 @@ export const createFromTool = internalMutation({
     schedule: v.string(),
     engine: v.string(),
     tools: v.optional(v.array(v.any())),
+    timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const count = (await ctx.db.query("tasks").collect()).length;
@@ -196,6 +218,8 @@ export const createFromTool = internalMutation({
       createdAt: now,
       updatedAt: now,
       consecutiveFailures: 0,
+      nextRunAt: computeNextRunAt(args.schedule, args.timezone),
+      timezone: args.timezone,
     });
   },
 });
@@ -253,6 +277,7 @@ export const internalUpdate = internalMutation({
     engine: v.optional(v.string()),
     tools: v.optional(v.array(v.any())),
     nextRunAt: v.optional(v.number()),
+    timezone: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...updates }) => {
     const task = await ctx.db.get(id);
@@ -266,7 +291,13 @@ export const internalUpdate = internalMutation({
     if (updates.status !== undefined) patch.status = updates.status;
     if (updates.engine !== undefined) patch.engine = updates.engine;
     if (updates.tools !== undefined) patch.tools = updates.tools;
-    if (updates.nextRunAt !== undefined) patch.nextRunAt = updates.nextRunAt;
+    if (updates.timezone !== undefined) patch.timezone = updates.timezone;
+    if (updates.nextRunAt !== undefined) {
+      patch.nextRunAt = updates.nextRunAt;
+    } else if (updates.schedule !== undefined) {
+      const tz = updates.timezone ?? task.timezone;
+      patch.nextRunAt = computeNextRunAt(updates.schedule, tz);
+    }
 
     await ctx.db.patch(id, patch);
   },

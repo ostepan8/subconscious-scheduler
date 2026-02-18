@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { ENGINE_OPTIONS as SHARED_ENGINE_OPTIONS } from "@/lib/constants";
 import { Pencil, X, Bell, Trash2, Mail, Plus } from "lucide-react";
+import {
+  type Frequency,
+  WEEKDAY_INDICES,
+  parseCron,
+  buildCron,
+  describeSchedule,
+  ScheduleBuilder,
+} from "./ScheduleBuilder";
 
 type TaskType = "research" | "sync" | "digest";
 type TaskStatus = "active" | "paused" | "error";
@@ -15,16 +23,6 @@ interface ResendConfig { channel: "resend"; to: string; onSuccess: boolean; onFa
 type ChannelConfig = ResendConfig;
 
 interface NotificationPreferences { enabled: boolean; channels: ChannelConfig[]; }
-
-const SCHEDULE_PRESETS = [
-  { label: "Every 15 minutes", value: "*/15 * * * *" },
-  { label: "Every hour", value: "0 * * * *" },
-  { label: "Every 6 hours", value: "0 */6 * * *" },
-  { label: "Daily at midnight", value: "0 0 * * *" },
-  { label: "Daily at 9am", value: "0 9 * * *" },
-  { label: "Weekly (Monday 9am)", value: "0 9 * * 1" },
-  { label: "Custom...", value: "__custom__" },
-];
 
 const TASK_TYPES: { label: string; value: TaskType }[] = [
   { label: "Research", value: "research" },
@@ -41,12 +39,6 @@ const ENGINE_OPTIONS = SHARED_ENGINE_OPTIONS.map((e) => ({
   label: e.label,
   value: e.value,
 }));
-
-
-function resolvePreset(schedule: string): string {
-  const match = SCHEDULE_PRESETS.find((p) => p.value === schedule);
-  return match ? schedule : "__custom__";
-}
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -171,18 +163,33 @@ export default function EditTaskDialog({ task }: { task: Doc<"tasks"> }) {
   const [type, setType] = useState<TaskType>(task.type as TaskType);
   const [prompt, setPrompt] = useState(task.prompt);
   const [status, setStatus] = useState<TaskStatus>(task.status === "error" ? "paused" : task.status as TaskStatus);
-  const [schedulePreset, setSchedulePreset] = useState(resolvePreset(task.schedule));
-  const [customSchedule, setCustomSchedule] = useState(resolvePreset(task.schedule) === "__custom__" ? task.schedule : "");
   const [engine, setEngine] = useState(task.engine);
 
-  const schedule = schedulePreset === "__custom__" ? customSchedule : schedulePreset;
+  // Schedule — parse existing cron into visual builder state, fall back to custom cron
+  const parsed = useMemo(() => parseCron(task.schedule), [task.schedule]);
+  const [frequency, setFrequency] = useState<Frequency>(parsed?.frequency ?? "daily");
+  const [hour12, setHour12] = useState(parsed?.hour12 ?? 9);
+  const [minute, setMinute] = useState(parsed?.minute ?? 0);
+  const [ampm, setAmpm] = useState<"AM" | "PM">(parsed?.ampm ?? "AM");
+  const [weekDays, setWeekDays] = useState<number[]>(parsed?.weekDays ?? WEEKDAY_INDICES);
+  const [showCustomCron, setShowCustomCron] = useState(!parsed);
+  const [customCron, setCustomCron] = useState(!parsed ? task.schedule : "");
+
+  const schedCfg = useMemo(() => ({
+    frequency, hour12, minute, ampm, weekDays,
+  }), [frequency, hour12, minute, ampm, weekDays]);
+
+  const schedule = showCustomCron ? customCron : buildCron(schedCfg);
+  const scheduleLabel = showCustomCron
+    ? (customCron || "Custom cron")
+    : describeSchedule(schedCfg);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !prompt.trim() || !schedule.trim()) { setError("Name, prompt, and schedule are required."); return; }
     setIsSubmitting(true); setError(null);
     try {
-      await updateTask({ id: task._id, name: name.trim(), type, prompt: prompt.trim(), schedule: schedule.trim(), status, engine });
+      await updateTask({ id: task._id, name: name.trim(), type, prompt: prompt.trim(), schedule: schedule.trim(), status, engine, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
       setIsOpen(false);
     } catch (err) { setError(err instanceof Error ? err.message : "Something went wrong"); }
     finally { setIsSubmitting(false); }
@@ -253,13 +260,19 @@ export default function EditTaskDialog({ task }: { task: Doc<"tasks"> }) {
           <textarea id="edit-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="w-full rounded-md border border-edge bg-ink px-3 py-2 text-sm text-cream placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none" />
         </div>
 
-        <div>
-          <label htmlFor="edit-schedule" className="mb-1 block text-xs font-medium text-subtle">Schedule</label>
-          <select id="edit-schedule" value={schedulePreset} onChange={(e) => setSchedulePreset(e.target.value)} className="w-full rounded-md border border-edge bg-ink px-3 py-2 text-sm text-cream focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-            {SCHEDULE_PRESETS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-          {schedulePreset === "__custom__" && (
-            <input type="text" value={customSchedule} onChange={(e) => setCustomSchedule(e.target.value)} placeholder="Cron expression, e.g. */30 * * * *" className="mt-2 w-full rounded-md border border-edge bg-ink px-3 py-2 text-sm text-cream placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
+        <div className="rounded-lg border border-edge bg-ink/30 p-4">
+          <label className="mb-3 block text-xs font-medium text-subtle">Schedule</label>
+          <ScheduleBuilder
+            frequency={frequency} setFrequency={setFrequency}
+            hour12={hour12} setHour12={setHour12}
+            minute={minute} setMinute={setMinute}
+            ampm={ampm} setAmpm={setAmpm}
+            weekDays={weekDays} setWeekDays={setWeekDays}
+            showCustomCron={showCustomCron} setShowCustomCron={setShowCustomCron}
+            customCron={customCron} setCustomCron={setCustomCron}
+          />
+          {!showCustomCron && (
+            <p className="mt-3 text-xs text-brand">{scheduleLabel}</p>
           )}
         </div>
 

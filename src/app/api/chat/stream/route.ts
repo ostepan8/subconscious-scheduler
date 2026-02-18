@@ -93,18 +93,27 @@ ${message}`;
             // Parse final answer
             let answer = "";
             try {
-              const final = JSON.parse(fullContent);
-              answer =
-                typeof final.answer === "string"
-                  ? final.answer
-                  : JSON.stringify(final.answer);
+              const parsed = JSON.parse(fullContent);
+              // Check for final_answer first (common AI response format), then answer
+              if (typeof parsed.final_answer === "string") {
+                answer = parsed.final_answer;
+              } else if (typeof parsed.answer === "string") {
+                answer = parsed.answer;
+              } else {
+                // Fallback: stringify whatever we got
+                answer = JSON.stringify(parsed.final_answer ?? parsed.answer ?? parsed);
+              }
             } catch {
-              // Fallback: try to extract answer field with regex
+              // Fallback: try to extract final_answer or answer field with regex
+              const finalAnswerMatch = fullContent.match(
+                /"final_answer"\s*:\s*"((?:[^"\\]|\\.)*)"/,
+              );
               const answerMatch = fullContent.match(
                 /"answer"\s*:\s*"((?:[^"\\]|\\.)*)"/,
               );
-              if (answerMatch) {
-                answer = answerMatch[1]
+              const match = finalAnswerMatch || answerMatch;
+              if (match) {
+                answer = match[1]
                   .replace(/\\n/g, "\n")
                   .replace(/\\"/g, '"')
                   .replace(/\\\\/g, "\\");
@@ -113,10 +122,10 @@ ${message}`;
               }
             }
 
-            // Extract just the Final Answer if the response has that format
-            const finalAnswerMatch = answer.match(/(?:Final Answer|final_answer):\s*([\s\S]*)/i);
-            if (finalAnswerMatch) {
-              answer = finalAnswerMatch[1].trim();
+            // Extract just the Final Answer if the response has that text prefix format
+            const finalAnswerPrefix = answer.match(/(?:Final Answer|final_answer):\s*([\s\S]*)/i);
+            if (finalAnswerPrefix) {
+              answer = finalAnswerPrefix[1].trim();
             }
 
             // Save assistant message
