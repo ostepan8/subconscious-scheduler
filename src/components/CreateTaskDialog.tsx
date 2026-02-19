@@ -8,12 +8,8 @@ import {
   Plus,
   X,
   ChevronRight,
-  Search,
-  RefreshCw,
-  FileText,
   Mail,
   AlertCircle,
-  Check,
 } from "lucide-react";
 import {
   type Frequency,
@@ -23,31 +19,8 @@ import {
   ScheduleBuilder,
 } from "./ScheduleBuilder";
 
-type TaskType = "research" | "sync" | "digest";
-
 interface ResendConfig { channel: "resend"; to: string; onSuccess: boolean; onFailure: boolean; customSubject?: string; customBody?: string; includeResult?: boolean; }
 type ChannelConfig = ResendConfig;
-
-const TASK_TYPES: { label: string; value: TaskType; icon: React.ReactNode; desc: string }[] = [
-  {
-    label: "Research",
-    value: "research",
-    desc: "Gather and analyze information",
-    icon: <Search className="h-5 w-5" strokeWidth={1.5} />,
-  },
-  {
-    label: "Sync",
-    value: "sync",
-    desc: "Keep data in sync across sources",
-    icon: <RefreshCw className="h-5 w-5" strokeWidth={1.5} />,
-  },
-  {
-    label: "Digest",
-    value: "digest",
-    desc: "Summarize and compile updates",
-    icon: <FileText className="h-5 w-5" strokeWidth={1.5} />,
-  },
-];
 
 const STEPS = ["Basics", "Instructions", "Schedule", "Delivery"];
 
@@ -64,7 +37,6 @@ export default function CreateTaskDialog() {
 
   // Step 0 — Basics
   const [name, setName] = useState("");
-  const [type, setType] = useState<TaskType>("research");
 
   // Step 1 — Instructions
   const [prompt, setPrompt] = useState("");
@@ -95,7 +67,7 @@ export default function CreateTaskDialog() {
     : describeSchedule(schedCfg);
 
   function resetForm() {
-    setName(""); setType("research"); setPrompt("");
+    setName(""); setPrompt("");
     setFrequency("daily"); setHour12(9); setMinute(0); setAmpm("AM");
     setWeekDays(WEEKDAY_INDICES);
     setShowCustomCron(false); setCustomCron("");
@@ -183,7 +155,6 @@ export default function CreateTaskDialog() {
     try {
       const taskId = await createTask({
         name: name.trim(),
-        type,
         prompt: prompt.trim(),
         schedule: finalSchedule.trim(),
         engine: DEFAULT_ENGINE,
@@ -283,35 +254,6 @@ export default function CreateTaskDialog() {
                 />
                 <p className="mt-1.5 text-xs text-muted">{name.length}/100</p>
               </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-cream">Type</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {TASK_TYPES.map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setType(t.value)}
-                      className={`group relative flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center transition-colors ${
-                        type === t.value
-                          ? "border-brand bg-brand/10 text-cream"
-                          : "border-edge bg-ink text-muted hover:border-edge-light hover:text-subtle"
-                      }`}
-                    >
-                      {type === t.value && (
-                        <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand">
-                          <Check className="h-2.5 w-2.5 text-ink" strokeWidth={3} />
-                        </div>
-                      )}
-                      <span className={`transition-colors ${type === t.value ? "text-brand" : "text-muted group-hover:text-subtle"}`}>
-                        {t.icon}
-                      </span>
-                      <span className="text-sm font-medium">{t.label}</span>
-                      <span className={`text-xs ${type === t.value ? "text-subtle" : "text-muted"}`}>{t.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
@@ -323,7 +265,7 @@ export default function CreateTaskDialog() {
                   Agent instructions
                 </label>
                 <p className="mb-2 text-xs text-muted">
-                  This prompt runs on every scheduled execution. Be specific about what to research, sync, or summarize.
+                  This prompt runs on every scheduled execution. Be specific about what you want the agent to do.
                 </p>
                 <textarea
                   ref={promptInputRef}
@@ -367,8 +309,7 @@ export default function CreateTaskDialog() {
                 {!showCustomCron && (
                   <p className="mt-1 font-mono text-[10px] text-muted/60">{finalSchedule}</p>
                 )}
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-md bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">{type}</span>
+                <div className="mt-2.5">
                   <span className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-0.5 text-[10px] font-medium text-muted">
                     Status: active <span className="text-brand/50">auto</span>
                   </span>

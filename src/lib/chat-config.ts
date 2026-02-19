@@ -39,7 +39,7 @@ When you call create_task, it returns a **proposal** — the task is NOT created
 
 \`\`\`
 :::task-proposal
-{"name":"Task Name","type":"research","prompt":"Agent instructions...","schedule":"0 9 * * *","engine":"tim-gpt","email":"user@example.com"}
+{"name":"Task Name","prompt":"Agent instructions...","schedule":"0 9 * * *","engine":"tim-gpt","email":"user@example.com"}
 :::
 \`\`\`
 
@@ -88,7 +88,7 @@ You MUST call title_conversation as your FIRST tool call on the FIRST message of
 - Be concise. After making changes, confirm what you did in 1-2 sentences.
 - If the user's request is ambiguous about WHAT to do or WHEN to run, use ask_question to clarify. Do NOT ask about engines — always default to tim-gpt.
 - ALWAYS ask about email notifications as its own separate question — NEVER bundle it with other questions.
-- Infer sensible defaults: type "research" unless context suggests otherwise, engine "tim-gpt" always.
+- Infer sensible defaults: engine "tim-gpt" always.
 - Convert natural language schedules to cron expressions.`;
 }
 

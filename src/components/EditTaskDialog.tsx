@@ -16,19 +16,12 @@ import {
   ScheduleBuilder,
 } from "./ScheduleBuilder";
 
-type TaskType = "research" | "sync" | "digest";
 type TaskStatus = "active" | "paused" | "error";
 
 interface ResendConfig { channel: "resend"; to: string; onSuccess: boolean; onFailure: boolean; customSubject?: string; customBody?: string; includeResult?: boolean; }
 type ChannelConfig = ResendConfig;
 
 interface NotificationPreferences { enabled: boolean; channels: ChannelConfig[]; }
-
-const TASK_TYPES: { label: string; value: TaskType }[] = [
-  { label: "Research", value: "research" },
-  { label: "Sync", value: "sync" },
-  { label: "Digest", value: "digest" },
-];
 
 const STATUS_OPTIONS: { label: string; value: TaskStatus }[] = [
   { label: "Active", value: "active" },
@@ -160,7 +153,6 @@ export default function EditTaskDialog({ task }: { task: Doc<"tasks"> }) {
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState(task.name);
-  const [type, setType] = useState<TaskType>(task.type as TaskType);
   const [prompt, setPrompt] = useState(task.prompt);
   const [status, setStatus] = useState<TaskStatus>(task.status === "error" ? "paused" : task.status as TaskStatus);
   const [engine, setEngine] = useState(task.engine);
@@ -189,7 +181,7 @@ export default function EditTaskDialog({ task }: { task: Doc<"tasks"> }) {
     if (!name.trim() || !prompt.trim() || !schedule.trim()) { setError("Name, prompt, and schedule are required."); return; }
     setIsSubmitting(true); setError(null);
     try {
-      await updateTask({ id: task._id, name: name.trim(), type, prompt: prompt.trim(), schedule: schedule.trim(), status, engine, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+      await updateTask({ id: task._id, name: name.trim(), prompt: prompt.trim(), schedule: schedule.trim(), status, engine, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
       setIsOpen(false);
     } catch (err) { setError(err instanceof Error ? err.message : "Something went wrong"); }
     finally { setIsSubmitting(false); }
@@ -234,13 +226,7 @@ export default function EditTaskDialog({ task }: { task: Doc<"tasks"> }) {
           <input id="edit-name" type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-md border border-edge bg-ink px-3 py-2 text-sm text-cream placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="edit-type" className="mb-1 block text-xs font-medium text-subtle">Type</label>
-            <select id="edit-type" value={type} onChange={(e) => setType(e.target.value as TaskType)} className="w-full rounded-md border border-edge bg-ink px-3 py-2 text-sm text-cream focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">
-              {TASK_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="edit-engine" className="mb-1 block text-xs font-medium text-subtle">Engine</label>
             <select id="edit-engine" value={engine} onChange={(e) => setEngine(e.target.value)} className="w-full rounded-md border border-edge bg-ink px-3 py-2 text-sm text-cream focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand">

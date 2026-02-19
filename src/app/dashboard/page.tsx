@@ -1,85 +1,142 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import StatsCards from "@/components/StatsCards";
-import TaskCard from "@/components/TaskCard";
-import CreateTaskDialog from "@/components/CreateTaskDialog";
-import EmptyState from "@/components/EmptyState";
+import { useState } from "react";
+import { useConvexAuth } from "convex/react";
+import OnboardingWizard from "@/components/OnboardingWizard";
+import {
+  ArrowRight,
+  CalendarClock,
+  MessageSquare,
+  Zap,
+  Rocket,
+} from "lucide-react";
 
 export default function DashboardPage() {
-  const tasks = useQuery(api.tasks.list);
-  const stats = useQuery(api.tasks.stats);
+  const { isLoading } = useConvexAuth();
+  const [showWizard, setShowWizard] = useState(false);
 
-  if (tasks === undefined || stats === undefined) {
+  if (isLoading) {
     return (
-      <div className="p-6 sm:p-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-cream">Dashboard</h1>
-              <div className="mt-2 h-4 w-28 animate-pulse rounded bg-surface/60" />
-            </div>
-            <div className="h-9 w-28 animate-pulse rounded-lg bg-surface" />
-          </div>
-
-          {/* Stats cards skeleton */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="rounded-xl border border-edge/60 bg-surface/60 p-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-pulse rounded bg-surface" />
-                  <div className="h-3 w-16 animate-pulse rounded bg-surface" />
-                </div>
-                <div className="mt-3 h-7 w-10 animate-pulse rounded bg-surface" />
-              </div>
-            ))}
-          </div>
-
-          {/* Task cards skeleton */}
-          <div className="mt-8 grid gap-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-xl border border-edge/60 bg-surface/60 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="h-4 w-40 animate-pulse rounded bg-surface" />
-                    <div className="mt-2 h-3 w-64 animate-pulse rounded bg-surface/60" />
-                  </div>
-                  <div className="h-5 w-14 animate-pulse rounded-full bg-surface" />
-                </div>
-                <div className="mt-3 flex items-center gap-4">
-                  <div className="h-5 w-16 animate-pulse rounded-md bg-surface/60" />
-                  <div className="h-3 w-20 animate-pulse rounded bg-surface/60" />
-                  <div className="h-3 w-16 animate-pulse rounded bg-surface/60" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
       </div>
     );
   }
 
+  if (showWizard) {
+    return <OnboardingWizard />;
+  }
+
   return (
-    <div className="p-6 sm:p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-cream">Dashboard</h1>
-            <p className="mt-1 text-sm text-muted">{tasks.length} task{tasks.length !== 1 ? "s" : ""} configured</p>
-          </div>
-          <CreateTaskDialog />
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center p-6 sm:p-8">
+      <div className="mx-auto w-full max-w-2xl text-center">
+        {/* Hero */}
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10 onboarding-fade-in">
+          <Rocket className="h-8 w-8 text-brand" strokeWidth={1.5} />
         </div>
-        <StatsCards stats={stats} />
-        {tasks.length === 0 ? (
-          <div className="mt-8">
-            <EmptyState />
+        <h1 className="text-4xl font-bold tracking-tight text-cream onboarding-fade-in">
+          Schedule AI Agents
+          <br />
+          That Work For You
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-lg text-muted onboarding-fade-in-delayed">
+          Create automated tasks powered by{" "}
+          <a
+            href="https://www.subconscious.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-brand hover:underline"
+          >
+            Subconscious
+          </a>
+          . Research, sync data, and generate reports — all on autopilot.
+        </p>
+
+        {/* Big CTA */}
+        <div className="mt-8 onboarding-fade-in-delayed">
+          <button
+            onClick={() => setShowWizard(true)}
+            className="inline-flex items-center gap-3 rounded-2xl bg-brand px-10 py-5 text-lg font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:shadow-xl hover:shadow-brand/30 hover:brightness-110 active:scale-[0.98] cursor-pointer"
+          >
+            Get Started — It&apos;s Free
+            <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+          </button>
+          <p className="mt-3 text-sm text-muted/60">
+            No credit card required. Set up in 60 seconds.
+          </p>
+        </div>
+
+        {/* Feature pills */}
+        <div className="mt-16 grid grid-cols-3 gap-4 onboarding-fade-in-delayed">
+          <div className="rounded-xl border border-edge/60 bg-surface/40 p-5">
+            <CalendarClock className="mx-auto mb-3 h-6 w-6 text-teal" strokeWidth={1.5} />
+            <h3 className="text-sm font-semibold text-cream">Schedule Agents</h3>
+            <p className="mt-1 text-xs text-muted">
+              Run on any cadence — hourly, daily, weekly, or custom cron
+            </p>
           </div>
-        ) : (
-          <div className="mt-8 grid gap-3">
-            {tasks.map((task) => <TaskCard key={task._id} task={task} />)}
+          <div className="rounded-xl border border-edge/60 bg-surface/40 p-5">
+            <MessageSquare className="mx-auto mb-3 h-6 w-6 text-lime" strokeWidth={1.5} />
+            <h3 className="text-sm font-semibold text-cream">Chat to Create</h3>
+            <p className="mt-1 text-xs text-muted">
+              Describe what you need in plain English and the agent handles it
+            </p>
           </div>
-        )}
+          <div className="rounded-xl border border-edge/60 bg-surface/40 p-5">
+            <Zap className="mx-auto mb-3 h-6 w-6 text-brand" strokeWidth={1.5} />
+            <h3 className="text-sm font-semibold text-cream">Auto Execution</h3>
+            <p className="mt-1 text-xs text-muted">
+              Results delivered to your inbox — runs on schedule, fully automatic
+            </p>
+          </div>
+        </div>
+
+        {/* How it works */}
+        <div className="mt-16 onboarding-fade-in-delayed">
+          <h2 className="mb-6 text-sm font-semibold uppercase tracking-wider text-muted">
+            How it works
+          </h2>
+          <div className="flex items-start gap-4 sm:gap-6">
+            <div className="flex-1 text-center">
+              <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
+                1
+              </div>
+              <p className="text-sm font-medium text-cream">Pick a template</p>
+              <p className="mt-1 text-xs text-muted">Or start from scratch</p>
+            </div>
+            <ArrowRight className="mt-3 h-4 w-4 shrink-0 text-edge" />
+            <div className="flex-1 text-center">
+              <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
+                2
+              </div>
+              <p className="text-sm font-medium text-cream">Set a schedule</p>
+              <p className="mt-1 text-xs text-muted">Choose when it runs</p>
+            </div>
+            <ArrowRight className="mt-3 h-4 w-4 shrink-0 text-edge" />
+            <div className="flex-1 text-center">
+              <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
+                3
+              </div>
+              <p className="text-sm font-medium text-cream">Launch it</p>
+              <p className="mt-1 text-xs text-muted">
+                Your agent runs on autopilot
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <p className="mt-20 text-xs text-muted/40">
+          Powered by{" "}
+          <a
+            href="https://www.subconscious.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted/60 hover:text-subtle transition-colors"
+          >
+            Subconscious
+          </a>
+        </p>
       </div>
     </div>
   );

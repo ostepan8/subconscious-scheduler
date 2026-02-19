@@ -4,12 +4,6 @@ import { formatSchedule } from "@/lib/schedule";
 import TaskStatusBadge from "@/components/TaskStatusBadge";
 import type { Doc } from "../../convex/_generated/dataModel";
 
-const typeColors: Record<string, string> = {
-  research: "bg-teal/10 text-teal",
-  sync: "bg-brand/10 text-brand",
-  digest: "bg-lime/10 text-lime",
-};
-
 function formatRelativeTime(timestamp: number | undefined | null): string {
   if (!timestamp) return "Never";
   const now = Date.now();
@@ -46,14 +40,6 @@ export default function TaskCard({ task }: { task: Doc<"tasks"> }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-subtle">
-        <span
-          className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium capitalize ${
-            typeColors[task.type] ?? "bg-muted/10 text-muted"
-          }`}
-        >
-          {task.type}
-        </span>
-
         <span className="flex items-center gap-1">
           <Clock className="h-3 w-3 text-muted" strokeWidth={1.75} />
           {formatSchedule(task.schedule)}

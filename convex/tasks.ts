@@ -97,7 +97,7 @@ export const getActiveTasks = internalQuery({
 export const create = mutation({
   args: {
     name: v.string(),
-    type: v.string(),
+    type: v.optional(v.string()),
     prompt: v.string(),
     schedule: v.string(),
     engine: v.string(),
@@ -112,7 +112,7 @@ export const create = mutation({
     const nextRunAt = computeNextRunAt(args.schedule, args.timezone);
     const taskId = await ctx.db.insert("tasks", {
       name: args.name,
-      type: args.type,
+      type: args.type ?? "research",
       prompt: args.prompt,
       schedule: args.schedule,
       status: "active",
@@ -211,7 +211,7 @@ export const remove = mutation({
 export const createFromTool = internalMutation({
   args: {
     name: v.string(),
-    type: v.string(),
+    type: v.optional(v.string()),
     prompt: v.string(),
     schedule: v.string(),
     engine: v.string(),
@@ -226,7 +226,7 @@ export const createFromTool = internalMutation({
     const nextRunAt = computeNextRunAt(args.schedule, args.timezone);
     const taskId = await ctx.db.insert("tasks", {
       name: args.name,
-      type: args.type,
+      type: args.type ?? "research",
       prompt: args.prompt,
       schedule: args.schedule,
       status: "active",

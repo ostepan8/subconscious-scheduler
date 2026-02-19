@@ -122,7 +122,7 @@ export default function TaskDetailPage() {
                 </span>
               )}
             </div>
-            <p className="mt-2 text-sm text-muted">{formatSchedule(task.schedule)} &middot; <span className="capitalize">{task.type}</span> &middot; {task.engine}</p>
+            <p className="mt-2 text-sm text-muted">{formatSchedule(task.schedule)} &middot; {task.engine}</p>
           </div>
           <TriggerButton taskId={task._id} isRunning={!!task.activeRunId} />
         </div>

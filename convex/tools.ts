@@ -64,7 +64,6 @@ export const listTasks = httpAction(async (ctx, request) => {
   const summary = tasks.map((t) => ({
     id: t._id,
     name: t.name,
-    type: t.type,
     status: t.status,
     schedule: t.schedule,
     engine: t.engine,
@@ -83,10 +82,10 @@ export const createTask = httpAction(async (ctx, request) => {
 
   try {
     const body = await parseBody(request);
-    const { name, type, prompt, schedule, engine } = body;
-    if (!name || !type || !prompt || !schedule) {
+    const { name, prompt, schedule, engine } = body;
+    if (!name || !prompt || !schedule) {
       return json(
-        { error: "Missing required fields: name, type, prompt, schedule" },
+        { error: "Missing required fields: name, prompt, schedule" },
         400
       );
     }
@@ -104,7 +103,6 @@ export const createTask = httpAction(async (ctx, request) => {
         "Task proposal ready. Present it to the user using the :::task-proposal format so they can approve it.",
       task: {
         name: name as string,
-        type: type as string,
         prompt: prompt as string,
         schedule: schedule as string,
         engine: (engine as string) || "tim-gpt",
@@ -291,7 +289,6 @@ export const getTaskDetails = httpAction(async (ctx, request) => {
       task: {
         id: task._id,
         name: task.name,
-        type: task.type,
         status: task.status,
         prompt: task.prompt,
         schedule: task.schedule,

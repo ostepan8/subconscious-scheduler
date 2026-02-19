@@ -8,7 +8,6 @@ import { Check, Clock, Cpu, FileText, Loader2, Mail } from "lucide-react";
 
 export interface TaskProposal {
   name: string;
-  type: string;
   prompt: string;
   schedule: string;
   engine?: string;
@@ -27,7 +26,6 @@ export default function TaskProposalCard({ proposal }: { proposal: TaskProposal 
     try {
       const taskId = await createTask({
         name: proposal.name,
-        type: proposal.type,
         prompt: proposal.prompt,
         schedule: proposal.schedule,
         engine: proposal.engine || "tim",
@@ -77,9 +75,6 @@ export default function TaskProposalCard({ proposal }: { proposal: TaskProposal 
       <div className="px-3.5 py-2.5 space-y-2">
         <p className="text-sm font-medium text-cream">{proposal.name}</p>
         <div className="flex flex-wrap gap-1.5">
-          <span className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand">
-            {proposal.type}
-          </span>
           <span className="inline-flex items-center gap-1 rounded-md bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted">
             <Cpu className="h-2.5 w-2.5" strokeWidth={1.75} />
             {proposal.engine || "tim"}

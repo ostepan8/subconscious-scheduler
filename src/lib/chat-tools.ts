@@ -16,7 +16,7 @@ export function buildChatTools(baseUrl: string, toolSecret: string): Tool[] {
       type: "function" as const,
       name: "list_tasks",
       description:
-        "List all scheduled tasks with their name, type, status, schedule, engine, last run time, and next run time.",
+        "List all scheduled tasks with their name, status, schedule, engine, last run time, and next run time.",
       url: `${baseUrl}/tools/list-tasks${s}`,
       method: "POST" as const,
       timeout: 15,
@@ -42,10 +42,6 @@ export function buildChatTools(baseUrl: string, toolSecret: string): Tool[] {
             type: "string" as const,
             description: "Task name (1-100 characters)",
           },
-          type: {
-            type: "string" as const,
-            description: "Task type: research, sync, or digest",
-          },
           prompt: {
             type: "string" as const,
             description: "Instructions for the agent — what it should do each run",
@@ -60,7 +56,7 @@ export function buildChatTools(baseUrl: string, toolSecret: string): Tool[] {
               "Engine to use: tim-gpt (smart, default), tim-edge (fast), timini (reasoning), or tim-gpt-heavy (smartest)",
           },
         },
-        required: ["name", "type", "prompt", "schedule"],
+        required: ["name", "prompt", "schedule"],
         additionalProperties: false,
       },
     },
