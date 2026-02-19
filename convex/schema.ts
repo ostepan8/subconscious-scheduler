@@ -13,6 +13,7 @@ export default defineSchema({
     status: v.string(), // "active" | "paused" | "error"
     engine: v.string(), // "tim-gpt" | "tim-edge" | "tim-gpt-heavy"
     tools: v.array(v.any()),
+    userId: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
     lastRunAt: v.optional(v.number()),
@@ -21,7 +22,7 @@ export default defineSchema({
     consecutiveFailures: v.number(),
     activeRunId: v.optional(v.string()),
     timezone: v.optional(v.string()), // IANA timezone e.g. "America/New_York"
-  }),
+  }).index("by_userId", ["userId"]),
 
   executionResults: defineTable({
     taskId: v.id("tasks"),
@@ -45,10 +46,13 @@ export default defineSchema({
 
   conversations: defineTable({
     externalId: v.string(),
+    userId: v.optional(v.id("users")),
     title: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_externalId", ["externalId"]),
+  })
+    .index("by_externalId", ["externalId"])
+    .index("by_userId", ["userId"]),
 
   messages: defineTable({
     conversationId: v.string(),

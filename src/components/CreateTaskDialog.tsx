@@ -263,10 +263,10 @@ export default function CreateTaskDialog() {
             <div className="space-y-5 modal-step-enter">
               <div>
                 <label htmlFor="create-prompt" className="mb-1.5 block text-sm font-medium text-cream">
-                  Agent instructions
+                  Email content instructions
                 </label>
                 <p className="mb-2 text-xs text-muted">
-                  This prompt runs on every scheduled execution. Be specific about what you want the agent to do.
+                  This describes the content for each email. Be specific about what you want included.
                 </p>
                 <textarea
                   ref={promptInputRef}
@@ -331,7 +331,7 @@ export default function CreateTaskDialog() {
                   </span>
                 </div>
                 <p className="mb-4 text-xs text-muted">
-                  Deliver agent results to your inbox after each run. Skip this to only view results in the dashboard.
+                  Get your personalized email delivered to your inbox after each run. Skip this to only view results in the dashboard.
                 </p>
 
                 <div className="space-y-4">
@@ -388,7 +388,7 @@ export default function CreateTaskDialog() {
                           className="w-full rounded-lg border border-edge bg-ink px-3 py-2.5 text-sm text-cream placeholder:text-muted transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none font-mono"
                         />
                         <p className="mt-1 text-[10px] text-muted">
-                          Use <code className="font-mono text-brand/60">{"{{...agentResponse}}"}</code> to place the agent output. Add text before or after it.
+                          Use <code className="font-mono text-brand/60">{"{{...agentResponse}}"}</code> to place the email content. Add text before or after it.
                         </p>
                       </div>
 

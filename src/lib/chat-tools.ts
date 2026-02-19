@@ -44,7 +44,7 @@ export function buildChatTools(baseUrl: string, toolSecret: string): Tool[] {
           },
           prompt: {
             type: "string" as const,
-            description: "Instructions for the agent — what it should do each run",
+            description: "Instructions for the email content — what to include each time",
           },
           schedule: {
             type: "string" as const,
@@ -81,7 +81,7 @@ export function buildChatTools(baseUrl: string, toolSecret: string): Tool[] {
           },
           prompt: {
             type: "string" as const,
-            description: "New agent instructions",
+            description: "New email content instructions",
           },
           schedule: {
             type: "string" as const,

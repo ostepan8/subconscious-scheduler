@@ -1,32 +1,45 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import TaskCard from "@/components/TaskCard";
 import EmptyState from "@/components/EmptyState";
 import CreateTaskDialog from "@/components/CreateTaskDialog";
-import { Activity, AlertTriangle, Zap } from "lucide-react";
+import { Activity, AlertTriangle, Zap, Rocket } from "lucide-react";
+
+const PENDING_KEY = "subconscious:pending-task";
 
 export default function TasksPage() {
   const tasks = useQuery(api.tasks.list);
   const stats = useQuery(api.tasks.stats);
   const createTask = useMutation(api.tasks.create);
   const upsertNotifs = useMutation(api.notificationPrefs.upsert);
+  const { isAuthenticated } = useConvexAuth();
   const router = useRouter();
   const pendingHandled = useRef(false);
+  const [creatingPending, setCreatingPending] = useState(
+    () => typeof window !== "undefined" && !!sessionStorage.getItem(PENDING_KEY)
+  );
 
   // Pick up any pending task from onboarding (saved before auth redirect)
+  // Wait until authenticated so the Convex mutation has a valid auth token
   useEffect(() => {
-    if (pendingHandled.current) return;
-    const raw = sessionStorage.getItem("subconscious:pending-task");
-    if (!raw) return;
+    if (pendingHandled.current || !isAuthenticated) return;
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) {
+      setCreatingPending(false);
+      return;
+    }
     pendingHandled.current = true;
-    sessionStorage.removeItem("subconscious:pending-task");
+    sessionStorage.removeItem(PENDING_KEY);
+    setCreatingPending(true);
 
     const data = JSON.parse(raw);
-    (async () => {
+
+    async function create(retries = 3): Promise<void> {
       try {
         const taskId = await createTask({
           name: data.name,
@@ -52,14 +65,40 @@ export default function TasksPage() {
           }).catch(() => {});
         }
 
+        setCreatingPending(false);
         router.push(`/dashboard/tasks/${taskId}`);
       } catch {
-        // Task creation failed — user can create manually
+        if (retries > 0) {
+          await new Promise((r) => setTimeout(r, 1000));
+          return create(retries - 1);
+        }
+        setCreatingPending(false);
       }
-    })();
-  }, [createTask, upsertNotifs, router]);
+    }
+
+    create();
+  }, [createTask, upsertNotifs, router, isAuthenticated]);
 
   const isLoading = tasks === undefined;
+
+  if (creatingPending) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <div className="text-center onboarding-fade-in">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10">
+            <Rocket className="h-7 w-7 text-brand animate-pulse" strokeWidth={1.5} />
+          </div>
+          <h2 className="text-xl font-bold text-cream">Setting up your email...</h2>
+          <p className="mt-2 text-sm text-muted">Setting everything up. Just a moment.</p>
+          <div className="mt-5 flex justify-center">
+            <div className="h-1 w-32 overflow-hidden rounded-full bg-edge">
+              <div className="h-full bg-brand onboarding-progress-fill" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 sm:p-8">
@@ -69,7 +108,7 @@ export default function TasksPage() {
           <div>
             <h1 className="text-2xl font-bold text-cream">Your Tasks</h1>
             <p className="mt-1 text-sm text-muted">
-              Manage your scheduled AI agents
+              Manage your scheduled emails
             </p>
           </div>
           <CreateTaskDialog />

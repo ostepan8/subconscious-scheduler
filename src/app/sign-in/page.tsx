@@ -150,7 +150,7 @@ export default function SignInPage() {
 
         {/* Subtitle */}
         <p className="mb-6 text-center text-sm text-muted">
-          Sign in to manage your scheduled agents
+          Sign in to manage your personalized emails
         </p>
 
         {/* Flow toggle */}

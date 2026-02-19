@@ -14,12 +14,12 @@ const jetbrainsMono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://scheduler.subconscious.dev"),
-  title: "Agent Scheduler | Subconscious",
-  description: "Schedule and run Subconscious AI agents on autopilot",
+  title: "Personalized Emails | Subconscious",
+  description: "Get customized, AI-powered emails delivered on your schedule",
   icons: { icon: "/favicon.png", apple: "/apple-touch-icon.png" },
   openGraph: {
-    title: "Agent Scheduler | Subconscious",
-    description: "Schedule and run Subconscious AI agents on autopilot",
+    title: "Personalized Emails | Subconscious",
+    description: "Get customized, AI-powered emails delivered on your schedule",
     images: ["/og.png"],
   },
 };
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="flex h-14 items-center justify-between px-8">
                 <Link href="/dashboard" className="flex items-center gap-3">
                   <Image src="/Subconscious_Logo.png" alt="Subconscious" width={140} height={26} priority style={{ objectFit: "contain" }} />
-                  <span className="rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">Scheduler</span>
+                  <span className="rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">Emails</span>
                 </Link>
                 <div className="flex items-center gap-2">
                   <a href="https://docs.subconscious.dev" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-subtle transition-colors hover:bg-surface hover:text-cream">

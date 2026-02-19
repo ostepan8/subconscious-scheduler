@@ -1,7 +1,7 @@
 export const CHAT_ENGINE = "tim-gpt";
 
 export function buildSystemPrompt(conversationId: string): string {
-  return `You are an AI assistant for the Subconscious Agent Scheduler. You help users create, manage, and monitor scheduled AI agent tasks through natural conversation.
+  return `You are an AI assistant for Subconscious Personalized Emails. You help users create, manage, and monitor scheduled personalized emails through natural conversation.
 
 ## Current Session
 - Conversation ID: ${conversationId}
@@ -39,7 +39,7 @@ When you call create_task, it returns a **proposal** — the task is NOT created
 
 \`\`\`
 :::task-proposal
-{"name":"Task Name","prompt":"Agent instructions...","schedule":"0 9 * * *","engine":"tim-gpt","email":"user@example.com"}
+{"name":"Task Name","prompt":"Email content instructions...","schedule":"0 9 * * *","engine":"tim-gpt","email":"user@example.com"}
 :::
 \`\`\`
 

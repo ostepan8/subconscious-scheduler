@@ -2,6 +2,7 @@ import { query, mutation, internalMutation, internalQuery } from "./_generated/s
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import cronParser from "cron-parser";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 function computeNextRunAt(schedule: string, timezone?: string): number | undefined {
   try {
@@ -18,7 +19,12 @@ function computeNextRunAt(schedule: string, timezone?: string): number | undefin
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const tasks = await ctx.db.query("tasks").collect();
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
     // Sort: active first, then paused, then error; within same status by lastRunAt desc
     const order: Record<string, number> = { active: 0, paused: 1, error: 2 };
     return tasks.sort((a, b) => {
@@ -35,14 +41,23 @@ export const list = query({
 export const get = query({
   args: { id: v.id("tasks") },
   handler: async (ctx, { id }) => {
-    return ctx.db.get(id);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const task = await ctx.db.get(id);
+    if (!task || task.userId !== userId) return null;
+    return task;
   },
 });
 
 export const stats = query({
   args: {},
   handler: async (ctx) => {
-    const tasks = await ctx.db.query("tasks").collect();
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { total: 0, active: 0, errored: 0, running: 0 };
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
     return {
       total: tasks.length,
       active: tasks.filter((t) => t.status === "active").length,
@@ -105,8 +120,13 @@ export const create = mutation({
     timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const count = (await ctx.db.query("tasks").collect()).length;
-    if (count >= 50) throw new Error("Maximum 50 tasks allowed");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const userTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    if (userTasks.length >= 50) throw new Error("Maximum 50 tasks allowed");
 
     const now = Date.now();
     const nextRunAt = computeNextRunAt(args.schedule, args.timezone);
@@ -118,6 +138,7 @@ export const create = mutation({
       status: "active",
       engine: args.engine,
       tools: args.tools ?? [],
+      userId,
       createdAt: now,
       updatedAt: now,
       consecutiveFailures: 0,
@@ -148,8 +169,11 @@ export const update = mutation({
     timezone: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...updates }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
     const task = await ctx.db.get(id);
     if (!task) throw new Error("Task not found");
+    if (task.userId !== userId) throw new Error("Not authorized");
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     if (updates.name !== undefined) patch.name = updates.name;
@@ -181,8 +205,11 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("tasks") },
   handler: async (ctx, { id }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
     const task = await ctx.db.get(id);
     if (!task) throw new Error("Task not found");
+    if (task.userId !== userId) throw new Error("Not authorized");
 
     // Cascade delete execution results
     const results = await ctx.db

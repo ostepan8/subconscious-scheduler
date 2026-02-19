@@ -187,6 +187,7 @@ export default function OnboardingWizard() {
   /* ── Task fields ── */
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [templateName, setTemplateName] = useState("");
   const [templatePrompt, setTemplatePrompt] = useState("");
   const [typewriterEnabled, setTypewriterEnabled] = useState(true);
 
@@ -223,40 +224,56 @@ export default function OnboardingWizard() {
     ? (customCron || "Custom cron")
     : describeSchedule(schedCfg);
 
-  /* ── Typewriter for prompt ── */
+  /* ── Typewriter for name (step 3) ── */
+  const { displayed: typewriterName, done: typewriterNameDone } = useTypewriter(
+    templateName,
+    25,
+    typewriterEnabled && step === 3,
+  );
+
+  // Sync typewriter output to name state
+  useEffect(() => {
+    if (step === 3 && typewriterEnabled) {
+      setName(typewriterName);
+    }
+  }, [typewriterName, step, typewriterEnabled]);
+
+  /* ── Typewriter for prompt (step 4) ── */
   const { displayed: typewriterPrompt, done: typewriterDone } = useTypewriter(
     templatePrompt,
-    15,
+    3,
     typewriterEnabled && step === 4,
   );
 
   // Sync typewriter output to prompt state
   useEffect(() => {
-    if (step === 4 && typewriterEnabled && !typewriterDone) {
+    if (step === 4 && typewriterEnabled) {
       setPrompt(typewriterPrompt);
     }
-  }, [typewriterPrompt, typewriterDone, step, typewriterEnabled]);
+  }, [typewriterPrompt, step, typewriterEnabled]);
 
   /* ── Auto-focus ── */
   useEffect(() => {
-    if (step === 3) {
-      const timer = setTimeout(() => nameRef.current?.focus(), 400);
+    if (step === 3 && (!typewriterEnabled || typewriterNameDone)) {
+      const timer = setTimeout(() => nameRef.current?.focus(), 200);
       return () => clearTimeout(timer);
     }
     if (step === 4 && typewriterDone) {
       const timer = setTimeout(() => promptRef.current?.focus(), 200);
       return () => clearTimeout(timer);
     }
-  }, [step, typewriterDone]);
+  }, [step, typewriterEnabled, typewriterNameDone, typewriterDone]);
 
   /* ── Template selection ── */
   function selectTemplate(template: Template) {
-    setName(template.name);
+    setTemplateName(template.name);
     setTemplatePrompt(template.prompt);
     if (template.id === "custom") {
+      setName("");
       setPrompt("");
       setTypewriterEnabled(false);
     } else {
+      setName("");
       setPrompt("");
       setTypewriterEnabled(true);
     }
@@ -422,7 +439,7 @@ export default function OnboardingWizard() {
               <Check className="h-12 w-12 text-success" strokeWidth={2} />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-cream">Your agent is live!</h2>
+          <h2 className="text-2xl font-bold text-cream">You&apos;re all set!</h2>
           <p className="mx-auto mt-3 max-w-sm text-sm text-muted">
             <strong className="text-cream">{name}</strong> will run {scheduleLabel.toLowerCase()}.
             <br />
@@ -447,10 +464,10 @@ export default function OnboardingWizard() {
             <Rocket className="h-10 w-10 text-brand" strokeWidth={1.5} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-cream onboarding-fade-in">
-            Let&apos;s set up your first agent
+            Set up your first personalized email
           </h1>
           <p className="mx-auto mt-4 max-w-sm text-base text-muted onboarding-fade-in-delayed">
-            Pick a template, customize it, set a schedule, and your AI agent runs on autopilot. Takes about 60 seconds.
+            Pick a template, customize it, set a schedule, and get tailored emails delivered to your inbox. Takes about 60 seconds.
           </p>
           <button
             onClick={() => setStep(2)}
@@ -548,7 +565,7 @@ export default function OnboardingWizard() {
           <div className="onboarding-fade-in">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-cream">Name your task</h2>
-              <p className="mt-1 text-sm text-muted">Give your agent a descriptive name.</p>
+              <p className="mt-1 text-sm text-muted">Give your email a descriptive name.</p>
             </div>
 
             <div className="space-y-5">
@@ -561,7 +578,10 @@ export default function OnboardingWizard() {
                   id="onboard-name"
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setTypewriterEnabled(false);
+                    setName(e.target.value);
+                  }}
                   placeholder="e.g. Morning News Brief"
                   maxLength={100}
                   className="w-full rounded-lg border border-edge bg-ink px-4 py-3 text-sm text-cream placeholder:text-muted transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -589,11 +609,11 @@ export default function OnboardingWizard() {
         {step === 4 && (
           <div className="onboarding-fade-in">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-cream">Tell your agent what to do</h2>
+              <h2 className="text-xl font-bold text-cream">What should your email include?</h2>
               <p className="mt-1 text-sm text-muted">
                 {typewriterEnabled
                   ? "Watch — we're writing your instructions from the template. Edit anything you like."
-                  : "Write the instructions your agent will follow on every run."}
+                  : "Describe the content you want in each email."}
               </p>
             </div>
 
@@ -614,7 +634,7 @@ export default function OnboardingWizard() {
 
               <div>
                 <label htmlFor="onboard-prompt" className="mb-1.5 block text-sm font-medium text-cream">
-                  Agent instructions
+                  Email content instructions
                 </label>
                 <textarea
                   ref={promptRef}
@@ -636,9 +656,9 @@ export default function OnboardingWizard() {
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Tips</p>
                 {[
-                  "Be specific about what you want the agent to find or do",
-                  "Mention the format you want results in (bullet points, paragraphs, etc.)",
-                  "Include any sources or constraints the agent should follow",
+                  "Be specific about what content you want in each email",
+                  "Mention the format you prefer (bullet points, paragraphs, etc.)",
+                  "Include any sources or topics to focus on",
                 ].map((tip, i) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-muted">
                     <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-brand/50" strokeWidth={1.5} />
@@ -668,7 +688,7 @@ export default function OnboardingWizard() {
             <div className="mb-6">
               <h2 className="text-xl font-bold text-cream">When should it run?</h2>
               <p className="mt-1 text-sm text-muted">
-                Pick a schedule for your agent. It&apos;ll run automatically — no need to remember.
+                Pick a delivery schedule. Your email arrives automatically — no need to remember.
               </p>
             </div>
 
@@ -687,7 +707,7 @@ export default function OnboardingWizard() {
               <div className="flex items-center gap-3 rounded-lg bg-brand/5 border border-brand/20 px-4 py-3">
                 <Clock className="h-5 w-5 text-brand shrink-0" strokeWidth={1.5} />
                 <div>
-                  <p className="text-xs font-medium text-cream">Your agent will run</p>
+                  <p className="text-xs font-medium text-cream">Your email will be delivered</p>
                   <p className="text-sm font-semibold text-brand">{scheduleLabel}</p>
                 </div>
               </div>
@@ -715,8 +735,8 @@ export default function OnboardingWizard() {
               </h2>
               <p className="mt-1 text-sm text-muted">
                 {isAuthenticated
-                  ? "Everything looks good? Hit launch and your agent starts working."
-                  : "Create an account (or sign in) to launch your agent."}
+                  ? "Everything looks good? Hit launch and your emails start delivering."
+                  : "Create an account (or sign in) to start receiving your emails."}
               </p>
             </div>
 
@@ -874,10 +894,10 @@ export default function OnboardingWizard() {
                   <>
                     <Rocket className="h-5 w-5" strokeWidth={2} />
                     {isAuthenticated
-                      ? "Launch Agent"
+                      ? "Start Delivering"
                       : authFlow === "signUp"
-                        ? "Create Account & Launch"
-                        : "Sign In & Launch"}
+                        ? "Create Account & Start"
+                        : "Sign In & Start"}
                   </>
                 )}
               </button>

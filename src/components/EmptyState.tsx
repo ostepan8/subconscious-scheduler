@@ -9,9 +9,9 @@ export default function EmptyState() {
 
       <h3 className="text-lg font-semibold text-cream">No tasks yet</h3>
       <p className="mt-2 max-w-sm text-center text-sm text-muted">
-        Create your first scheduled task to start running Subconscious agents on
-        autopilot. Tasks can research, sync data, or generate digests on any
-        schedule you define.
+        Create your first scheduled email to start receiving personalized content
+        on autopilot. Get news digests, research reports, or custom updates delivered
+        right to your inbox.
       </p>
       <div className="mt-6 flex items-center gap-2 text-xs text-subtle">
         <Check className="h-4 w-4 text-teal" strokeWidth={2} />

@@ -28,9 +28,36 @@ function extractAnswer(raw: string): string {
     // Not valid JSON — continue to next strategy
   }
 
-  // Strategy 2: Find a JSON object embedded in surrounding text
-  const jsonStart = trimmed.indexOf("{");
+  // Strategy 2: Find the last JSON object in the content (final answer is
+  // typically at the end, after thinking/tool output that may contain braces)
   const jsonEnd = trimmed.lastIndexOf("}");
+  if (jsonEnd !== -1) {
+    // Scan backwards from jsonEnd to find the matching opening brace
+    let depth = 0;
+    for (let i = jsonEnd; i >= 0; i--) {
+      if (trimmed[i] === "}") depth++;
+      else if (trimmed[i] === "{") depth--;
+      if (depth === 0) {
+        try {
+          const parsed = JSON.parse(trimmed.slice(i, jsonEnd + 1));
+          if (typeof parsed === "object" && parsed !== null) {
+            const text = typeof parsed.final_answer === "string"
+              ? parsed.final_answer
+              : typeof parsed.answer === "string"
+                ? parsed.answer
+                : null;
+            if (text) return text;
+          }
+        } catch {
+          // This JSON block didn't have what we need — continue
+        }
+        break;
+      }
+    }
+  }
+
+  // Strategy 2b: Try first-to-last brace as fallback
+  const jsonStart = trimmed.indexOf("{");
   if (jsonStart !== -1 && jsonEnd > jsonStart) {
     try {
       const parsed = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));

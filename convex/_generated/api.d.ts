@@ -15,6 +15,7 @@ import type * as crons from "../crons.js";
 import type * as executionResults from "../executionResults.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
 import type * as notificationPrefs from "../notificationPrefs.js";
 import type * as pendingQuestions from "../pendingQuestions.js";
 import type * as tasks from "../tasks.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   executionResults: typeof executionResults;
   http: typeof http;
   messages: typeof messages;
+  migrations: typeof migrations;
   notificationPrefs: typeof notificationPrefs;
   pendingQuestions: typeof pendingQuestions;
   tasks: typeof tasks;

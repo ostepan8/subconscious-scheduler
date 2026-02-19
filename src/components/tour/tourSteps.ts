@@ -17,7 +17,7 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: null,
     title: "Welcome to your dashboard!",
     description:
-      "Let us show you around. This quick tour will help you get the most out of your AI agent scheduler.",
+      "Let us show you around. This quick tour will help you get the most out of your personalized email dashboard.",
     tooltipSide: "bottom",
   },
   {
@@ -25,7 +25,7 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: "[data-tour='tasks-area']",
     title: "Your command center",
     description:
-      "All your scheduled AI agents live here. You can see their status, when they last ran, and when they'll run next.",
+      "All your scheduled emails live here. You can see their status, when they last ran, and when they'll deliver next.",
     tooltipSide: "bottom",
     spotlightPadding: 12,
     spotlightBorderRadius: 16,
@@ -33,9 +33,9 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "new-task-button",
     targetSelector: "[data-tour='new-task']",
-    title: "Create new agents",
+    title: "Create new emails",
     description:
-      "Click here to set up a new scheduled task. Pick a template or start from scratch — your agent runs automatically on the schedule you set.",
+      "Click here to set up a new scheduled email. Pick a template or start from scratch — your email delivers automatically on the schedule you set.",
     tooltipSide: "bottom",
     spotlightPadding: 8,
     spotlightBorderRadius: 10,
@@ -45,7 +45,7 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: "[data-tour='chat-panel']",
     title: "Your AI assistant",
     description:
-      "Chat with your assistant to manage tasks, check statuses, or ask questions. It can create and modify agents for you conversationally.",
+      "Chat with your assistant to manage emails, check statuses, or ask questions. It can create and customize emails for you conversationally.",
     tooltipSide: "left",
     beforeShow: "open-chat",
     spotlightPadding: 0,
@@ -56,7 +56,7 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: null,
     title: "You're all set!",
     description:
-      "You know the basics. Create your first agent or chat with the assistant to get started.",
+      "You know the basics. Create your first personalized email or chat with the assistant to get started.",
     tooltipSide: "bottom",
   },
 ];

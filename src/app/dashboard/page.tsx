@@ -44,9 +44,9 @@ export default function DashboardPage() {
           <Rocket className="h-8 w-8 text-brand" strokeWidth={1.5} />
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-cream onboarding-fade-in">
-          Schedule AI Agents
+          Personalized Emails
           <br />
-          That Work For You
+          Delivered For You
         </h1>
         <p className="mx-auto mt-4 max-w-md text-lg text-muted onboarding-fade-in-delayed">
           Create automated tasks powered by{" "}
@@ -58,7 +58,7 @@ export default function DashboardPage() {
           >
             Subconscious
           </a>
-          . Research, sync data, and generate reports — all on autopilot.
+          . News digests, research reports, and custom updates — delivered to your inbox on autopilot.
         </p>
 
         {/* Big CTA */}
@@ -79,23 +79,23 @@ export default function DashboardPage() {
         <div className="mt-16 grid grid-cols-3 gap-4 onboarding-fade-in-delayed">
           <div className="rounded-xl border border-edge/60 bg-surface/40 p-5">
             <CalendarClock className="mx-auto mb-3 h-6 w-6 text-teal" strokeWidth={1.5} />
-            <h3 className="text-sm font-semibold text-cream">Schedule Agents</h3>
+            <h3 className="text-sm font-semibold text-cream">Custom Schedules</h3>
             <p className="mt-1 text-xs text-muted">
-              Run on any cadence — hourly, daily, weekly, or custom cron
+              Deliver on any cadence — hourly, daily, weekly, or custom
             </p>
           </div>
           <div className="rounded-xl border border-edge/60 bg-surface/40 p-5">
             <MessageSquare className="mx-auto mb-3 h-6 w-6 text-lime" strokeWidth={1.5} />
-            <h3 className="text-sm font-semibold text-cream">Chat to Create</h3>
+            <h3 className="text-sm font-semibold text-cream">Describe in Plain English</h3>
             <p className="mt-1 text-xs text-muted">
-              Describe what you need in plain English and the agent handles it
+              Tell us what you want to know and we&apos;ll craft your email
             </p>
           </div>
           <div className="rounded-xl border border-edge/60 bg-surface/40 p-5">
             <Zap className="mx-auto mb-3 h-6 w-6 text-brand" strokeWidth={1.5} />
-            <h3 className="text-sm font-semibold text-cream">Auto Execution</h3>
+            <h3 className="text-sm font-semibold text-cream">Inbox Delivery</h3>
             <p className="mt-1 text-xs text-muted">
-              Results delivered to your inbox — runs on schedule, fully automatic
+              Personalized content delivered to your inbox, fully automatic
             </p>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function DashboardPage() {
               </div>
               <p className="text-sm font-medium text-cream">Launch it</p>
               <p className="mt-1 text-xs text-muted">
-                Your agent runs on autopilot
+                Emails delivered on autopilot
               </p>
             </div>
           </div>

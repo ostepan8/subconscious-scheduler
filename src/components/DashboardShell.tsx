@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useChat, type Conversation } from "@/hooks/useChat";
 import { useTourState } from "@/hooks/useTourState";
@@ -140,8 +140,8 @@ function ConversationListView({
             <Plus className="h-4 w-4" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-sm font-medium text-cream">New Agent</p>
-            <p className="text-[11px] text-muted">Start a new conversation</p>
+            <p className="text-sm font-medium text-cream">New Email</p>
+            <p className="text-[11px] text-muted">Set up a new personalized email</p>
           </div>
         </button>
       </div>
@@ -166,7 +166,7 @@ function ConversationListView({
               <MessagesSquare className="h-5 w-5 text-muted" strokeWidth={1.75} />
             </div>
             <p className="text-xs text-muted">No conversations yet</p>
-            <p className="mt-1 text-[11px] text-muted/60">Click &quot;New Agent&quot; to start</p>
+            <p className="mt-1 text-[11px] text-muted/60">Click &quot;New Email&quot; to start</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -420,6 +420,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   } = useChat();
 
   const { shouldShowTour, isReady: tourReady, completeTour } = useTourState();
+
+  // One-time migration: claim orphaned data for this user
+  const claimOrphaned = useMutation(api.migrations.claimOrphanedData);
+  const migrationRan = useRef(false);
+  useEffect(() => {
+    if (migrationRan.current) return;
+    migrationRan.current = true;
+    claimOrphaned().catch(() => {/* ignore */});
+  }, [claimOrphaned]);
 
   // "list" = conversation list, "chat" = active conversation
   const [view, setView] = useState<"list" | "chat">("list");
