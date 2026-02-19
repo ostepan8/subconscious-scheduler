@@ -69,7 +69,6 @@ function NotificationSettings({ taskId, isOpen }: { taskId: Id<"tasks">; isOpen:
   }
 
   function addChannel() {
-    if (prefs.channels.some((c) => c.channel === "resend")) return;
     const newChannel: ChannelConfig = { channel: "resend", to: "", onSuccess: true, onFailure: true };
     updatePrefs({ ...prefs, enabled: true, channels: [...prefs.channels, newChannel] });
   }
@@ -83,12 +82,12 @@ function NotificationSettings({ taskId, isOpen }: { taskId: Id<"tasks">; isOpen:
 
   function handleSave() {
     for (const ch of prefs.channels) {
-      if (ch.channel === "resend" && !ch.to.trim()) { setNotifyError("Email address is required."); return; }
+      if (ch.channel === "resend" && !ch.to.trim()) { setNotifyError("All email addresses are required."); return; }
     }
     savePrefs(prefs);
   }
 
-  const hasEmail = prefs.channels.some((c) => c.channel === "resend");
+  const emailChannels = prefs.channels.filter((c) => c.channel === "resend");
 
   if (storedPrefs === undefined) {
     return (<div className="flex items-center gap-2 py-3 text-xs text-muted"><div className="h-3 w-3 animate-spin rounded-full border-2 border-muted border-t-transparent" />Loading notifications...</div>);
@@ -103,31 +102,36 @@ function NotificationSettings({ taskId, isOpen }: { taskId: Id<"tasks">; isOpen:
 
       {prefs.enabled && (
         <div className="space-y-3">
-          {hasEmail ? (
-            <div className="rounded-lg border border-edge bg-ink p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-cream">
-                  <Mail className="h-4 w-4 text-muted" strokeWidth={1.5} />Email
+          {emailChannels.length > 0 && (
+            <div className="space-y-2">
+              {prefs.channels.map((ch, i) => ch.channel !== "resend" ? null : (
+                <div key={i} className="rounded-lg border border-edge bg-ink p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-cream">
+                      <Mail className="h-4 w-4 text-muted" strokeWidth={1.5} />
+                      {emailChannels.length > 1 ? `Email ${prefs.channels.slice(0, i + 1).filter(c => c.channel === "resend").length}` : "Email"}
+                    </div>
+                    <button type="button" onClick={() => removeChannel(i)} className="rounded p-0.5 text-muted transition-colors hover:text-danger cursor-pointer">
+                      <X className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    </button>
+                  </div>
+                  <input type="email" value={ch.to} onChange={(e) => updateChannel(i, { to: e.target.value })} placeholder="you@example.com" className="w-full rounded-md border border-edge bg-surface px-3 py-1.5 text-sm text-cream placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={ch.onSuccess !== false} onChange={(e) => updateChannel(i, { onSuccess: e.target.checked })} className="h-3.5 w-3.5 rounded border-edge bg-surface text-brand accent-brand" /><span className="text-xs text-subtle">On success</span></label>
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={ch.onFailure !== false} onChange={(e) => updateChannel(i, { onFailure: e.target.checked })} className="h-3.5 w-3.5 rounded border-edge bg-surface text-brand accent-brand" /><span className="text-xs text-subtle">On failure</span></label>
+                  </div>
                 </div>
-                <button type="button" onClick={() => removeChannel(0)} className="rounded p-0.5 text-muted transition-colors hover:text-danger">
-                  <X className="h-3.5 w-3.5" strokeWidth={1.75} />
-                </button>
-              </div>
-              <input type="email" value={prefs.channels[0]?.to ?? ""} onChange={(e) => updateChannel(0, { to: e.target.value })} placeholder="you@example.com" className="w-full rounded-md border border-edge bg-surface px-3 py-1.5 text-sm text-cream placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={prefs.channels[0]?.onSuccess !== false} onChange={(e) => updateChannel(0, { onSuccess: e.target.checked })} className="h-3.5 w-3.5 rounded border-edge bg-surface text-brand accent-brand" /><span className="text-xs text-subtle">On success</span></label>
-                <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={prefs.channels[0]?.onFailure !== false} onChange={(e) => updateChannel(0, { onFailure: e.target.checked })} className="h-3.5 w-3.5 rounded border-edge bg-surface text-brand accent-brand" /><span className="text-xs text-subtle">On failure</span></label>
-              </div>
+              ))}
             </div>
-          ) : (
-            <button type="button" onClick={() => addChannel()} className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-light transition-colors">
-              <Plus className="h-3.5 w-3.5" strokeWidth={2} />Add email
-            </button>
           )}
 
-          {hasEmail && (
+          <button type="button" onClick={addChannel} className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-light transition-colors cursor-pointer">
+            <Plus className="h-3.5 w-3.5" strokeWidth={2} />Add email
+          </button>
+
+          {emailChannels.length > 0 && (
             <div className="flex items-center gap-2 pt-1">
-              <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-brand-light disabled:opacity-50">
+              <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-brand-light disabled:opacity-50 cursor-pointer">
                 {saving && <div className="h-3 w-3 animate-spin rounded-full border-2 border-ink border-t-transparent" />}
                 {saving ? "Saving..." : "Save Notifications"}
               </button>

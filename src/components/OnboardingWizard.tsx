@@ -357,9 +357,9 @@ export default function OnboardingWizard() {
         engine: DEFAULT_ENGINE,
         tools: DEFAULT_TOOLS,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        notifyEmail: notifyEmail.trim(),
-        notifyOnSuccess,
-        notifyOnFailure,
+        notifyEmail: notifyEmail.trim() || authEmail.trim(),
+        notifyOnSuccess: true,
+        notifyOnFailure: true,
       }));
 
       try {
