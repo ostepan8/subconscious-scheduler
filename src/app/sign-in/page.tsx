@@ -135,7 +135,7 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink">
-      <div className="w-full max-w-md rounded-2xl border border-edge/60 bg-surface/95 p-8 shadow-2xl shadow-black/40 backdrop-blur-sm">
+      <div className="onboarding-fade-in w-full max-w-md rounded-2xl border border-edge/60 bg-surface/95 p-8 shadow-2xl shadow-black/40 backdrop-blur-sm">
         {/* Logo */}
         <div className="mb-8 flex justify-center">
           <Image

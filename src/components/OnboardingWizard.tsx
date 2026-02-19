@@ -339,12 +339,24 @@ export default function OnboardingWizard() {
         formData.set("password", authPassword);
         formData.set("flow", authFlow);
 
-        const result = await Promise.race([
-          signIn("password", formData),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("timed out")), 15000),
-          ),
-        ]);
+        const tryAuth = (fd: FormData) =>
+          Promise.race([
+            signIn("password", fd),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("timed out")), 15000),
+            ),
+          ]);
+
+        let result = await tryAuth(formData);
+
+        // If sign-up failed because account exists, retry as sign-in
+        if (!result.signingIn && authFlow === "signUp") {
+          const retryData = new FormData();
+          retryData.set("email", authEmail);
+          retryData.set("password", authPassword);
+          retryData.set("flow", "signIn");
+          result = await tryAuth(retryData);
+        }
 
         if (result.signingIn) {
           // Auth succeeded — useEffect will call doCreateTask when isAuthenticated flips
@@ -354,6 +366,26 @@ export default function OnboardingWizard() {
           setIsSubmitting(false);
         }
       } catch (err) {
+        // If sign-up threw because account exists, retry as sign-in
+        const msg = err instanceof Error ? err.message.toLowerCase() : "";
+        if (authFlow === "signUp" && (msg.includes("already exists") || msg.includes("duplicate") || msg.includes("unique"))) {
+          try {
+            const retryData = new FormData();
+            retryData.set("email", authEmail);
+            retryData.set("password", authPassword);
+            retryData.set("flow", "signIn");
+            const retryResult = await Promise.race([
+              signIn("password", retryData),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("timed out")), 15000),
+              ),
+            ]);
+            if (retryResult.signingIn) {
+              setAwaitingAuth(true);
+              return;
+            }
+          } catch { /* fall through to original error */ }
+        }
         setError(getAuthError(err, authFlow));
         setIsSubmitting(false);
       }
