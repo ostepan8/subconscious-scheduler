@@ -385,7 +385,7 @@ async function sendNotificationsForTask(
 
       if (channel.channel === "resend") {
         const apiKey = process.env.RESEND_API_KEY;
-        const from = process.env.RESEND_FROM_EMAIL || "notifications@yourdomain.com";
+        const from = process.env.RESEND_FROM_EMAIL || "subconscious-scheduler@subconscious.dev";
         if (!apiKey || !channel.to) continue;
 
         const subject = channel.customSubject || taskName;

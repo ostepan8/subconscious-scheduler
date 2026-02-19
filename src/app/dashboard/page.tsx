@@ -9,7 +9,6 @@ import {
   CalendarClock,
   MessageSquare,
   Zap,
-  Rocket,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -38,12 +37,9 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center p-6 sm:p-8">
-      <div className="mx-auto w-full max-w-2xl text-center">
+      <div className="mx-auto w-full max-w-5xl text-center">
         {/* Hero */}
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10 onboarding-fade-in">
-          <Rocket className="h-8 w-8 text-brand" strokeWidth={1.5} />
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight text-cream onboarding-fade-in">
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-cream onboarding-fade-in">
           Personalized Emails
           <br />
           Delivered For You
