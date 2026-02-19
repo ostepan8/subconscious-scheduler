@@ -187,6 +187,7 @@ export default function CreateTaskDialog() {
   if (!isOpen) {
     return (
       <button
+        data-tour="new-task"
         onClick={() => setIsOpen(true)}
         className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-brand-light"
       >

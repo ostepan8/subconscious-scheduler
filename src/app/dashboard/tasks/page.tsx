@@ -15,7 +15,7 @@ export default function TasksPage() {
 
   return (
     <div className="p-6 sm:p-8">
-      <div className="mx-auto max-w-4xl">
+      <div data-tour="tasks-area" className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

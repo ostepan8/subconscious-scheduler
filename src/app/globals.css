@@ -124,6 +124,30 @@ body::before {
   animation: onboarding-progress-fill 3s ease-out forwards;
 }
 
+/* Tour spotlight animations */
+@keyframes tour-tooltip-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes tour-tooltip-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(8px) scale(0.96); }
+}
+@keyframes tour-spotlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 92, 40, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 92, 40, 0); }
+}
+
+.tour-tooltip-enter {
+  animation: tour-tooltip-in 0.3s ease-out forwards;
+}
+.tour-tooltip-exit {
+  animation: tour-tooltip-out 0.2s ease-in forwards;
+}
+.tour-spotlight-ring {
+  animation: tour-spotlight-pulse 2s ease-in-out infinite;
+}
+
 /* Confetti burst on success */
 @keyframes confetti-particle {
   0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }

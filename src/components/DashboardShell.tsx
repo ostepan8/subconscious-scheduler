@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useChat, type Conversation } from "@/hooks/useChat";
+import { useTourState } from "@/hooks/useTourState";
+import ProductTour from "@/components/tour/ProductTour";
 import ChatMessage from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import ThinkingIndicator from "@/components/chat/ThinkingIndicator";
@@ -417,6 +419,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     toggleChat,
   } = useChat();
 
+  const { shouldShowTour, isReady: tourReady, completeTour } = useTourState();
+
   // "list" = conversation list, "chat" = active conversation
   const [view, setView] = useState<"list" | "chat">("list");
 
@@ -453,6 +457,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
       {/* Right — Chat panel */}
       <div
+        data-tour="chat-panel"
         className={`shrink-0 border-l border-edge bg-ink transition-all duration-300 ease-in-out overflow-hidden ${
           isChatOpen ? "w-[420px]" : "w-0 border-l-0"
         }`}
@@ -484,6 +489,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           />
         )}
       </div>
+
+      {/* Product tour for first-time users */}
+      {tourReady && shouldShowTour && (
+        <ProductTour
+          onComplete={completeTour}
+          isChatOpen={isChatOpen}
+          toggleChat={toggleChat}
+        />
+      )}
     </div>
   );
 }
