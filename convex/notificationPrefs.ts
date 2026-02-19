@@ -59,8 +59,8 @@ export const upsert = mutation({
 
 // Public query: look up notification info by unsubscribe token (no auth required)
 export const getByUnsubscribeToken = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
+  args: { token: v.string(), email: v.optional(v.string()) },
+  handler: async (ctx, { token, email }) => {
     const prefs = await ctx.db
       .query("notificationPrefs")
       .withIndex("by_unsubscribeToken", (q) => q.eq("unsubscribeToken", token))
@@ -68,24 +68,55 @@ export const getByUnsubscribeToken = query({
     if (!prefs) return null;
 
     const task = await ctx.db.get(prefs.taskId);
+    const channels = (prefs.channels ?? []) as { channel: string; to?: string }[];
+
+    // Check if the specified email actually exists in the channels
+    const emailExists = email
+      ? channels.some((c) => c.channel === "resend" && c.to === email)
+      : false;
+
+    // Collect all emails for this task (for display if email param is missing)
+    const emails = channels
+      .filter((c) => c.channel === "resend" && c.to)
+      .map((c) => c.to!);
+
     return {
       taskName: task?.name ?? "Unknown task",
       enabled: prefs.enabled,
+      email: emailExists ? email! : null,
+      emails,
     };
   },
 });
 
-// Public mutation: disable notifications by unsubscribe token (no auth required)
+// Public mutation: unsubscribe a specific email by token (no auth required)
 export const unsubscribeByToken = mutation({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
+  args: { token: v.string(), email: v.optional(v.string()) },
+  handler: async (ctx, { token, email }) => {
     const prefs = await ctx.db
       .query("notificationPrefs")
       .withIndex("by_unsubscribeToken", (q) => q.eq("unsubscribeToken", token))
       .first();
     if (!prefs) return { success: false };
 
-    await ctx.db.patch(prefs._id, { enabled: false });
+    const channels = (prefs.channels ?? []) as any[];
+
+    if (email) {
+      // Remove just the matching email channel
+      const filtered = channels.filter(
+        (c) => !(c.channel === "resend" && c.to === email)
+      );
+      if (filtered.length === 0) {
+        // No channels left — disable entirely
+        await ctx.db.patch(prefs._id, { enabled: false, channels: filtered });
+      } else {
+        await ctx.db.patch(prefs._id, { channels: filtered });
+      }
+    } else {
+      // No email specified — disable all notifications
+      await ctx.db.patch(prefs._id, { enabled: false });
+    }
+
     return { success: true };
   },
 });

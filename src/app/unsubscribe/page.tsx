@@ -6,13 +6,31 @@ import { useSearchParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import Image from "next/image";
 
+// Bell-off icon (muted notifications)
+function BellOffIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 005.714 0m-8.572-3.397a17.456 17.456 0 01-1.299-1.479A1.5 1.5 0 014.5 10.5h.042A14.922 14.922 0 019 4.065a3 3 0 015.941 0 14.92 14.92 0 014.458 6.435h.042a1.5 1.5 0 01.486 1.706 17.458 17.458 0 01-1.299 1.479M3 3l18 18" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
 export default function UnsubscribePage() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
+  const email = searchParams.get("email") ?? undefined;
 
   const info = useQuery(
     api.notificationPrefs.getByUnsubscribeToken,
-    token ? { token } : "skip"
+    token ? { token, email } : "skip"
   );
   const unsubscribe = useMutation(api.notificationPrefs.unsubscribeByToken);
 
@@ -20,9 +38,11 @@ export default function UnsubscribePage() {
 
   async function handleUnsubscribe() {
     setStatus("loading");
-    await unsubscribe({ token });
+    await unsubscribe({ token, email });
     setStatus("done");
   }
+
+  const displayEmail = info?.email ?? email;
 
   // No token in URL
   if (!token) {
@@ -57,19 +77,26 @@ export default function UnsubscribePage() {
     );
   }
 
-  // Already unsubscribed (either from dashboard or previous unsubscribe)
-  if (!info.enabled && status === "idle") {
+  // Already unsubscribed
+  if ((!info.enabled || (displayEmail && !info.email)) && status === "idle") {
     return (
       <Shell>
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
-            <svg className="h-7 w-7 text-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+            <CheckIcon className="h-7 w-7 text-success" />
           </div>
           <h2 className="mb-2 text-lg font-semibold text-cream">Already Unsubscribed</h2>
           <p className="text-sm text-subtle">
-            Notifications for <span className="font-medium text-cream">{info.taskName}</span> are already off.
+            {displayEmail ? (
+              <>
+                <span className="font-medium text-cream">{displayEmail}</span> is already unsubscribed from{" "}
+                <span className="font-medium text-cream">{info.taskName}</span>.
+              </>
+            ) : (
+              <>
+                Notifications for <span className="font-medium text-cream">{info.taskName}</span> are already off.
+              </>
+            )}
           </p>
         </div>
       </Shell>
@@ -82,13 +109,20 @@ export default function UnsubscribePage() {
       <Shell>
         <div className="onboarding-fade-in text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
-            <svg className="h-7 w-7 text-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+            <CheckIcon className="h-7 w-7 text-success" />
           </div>
           <h2 className="mb-2 text-lg font-semibold text-cream">Unsubscribed</h2>
           <p className="text-sm text-subtle">
-            You will no longer receive emails for <span className="font-medium text-cream">{info.taskName}</span>.
+            {displayEmail ? (
+              <>
+                <span className="font-medium text-cream">{displayEmail}</span> will no longer receive emails for{" "}
+                <span className="font-medium text-cream">{info.taskName}</span>.
+              </>
+            ) : (
+              <>
+                You will no longer receive emails for <span className="font-medium text-cream">{info.taskName}</span>.
+              </>
+            )}
           </p>
           <p className="mt-4 text-xs text-muted">
             You can re-enable notifications anytime from your dashboard.
@@ -103,20 +137,28 @@ export default function UnsubscribePage() {
     <Shell>
       <div className="onboarding-fade-in text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand/10">
-          <svg className="h-7 w-7 text-brand" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51" />
-          </svg>
+          <BellOffIcon className="h-7 w-7 text-brand" />
         </div>
-        <h2 className="mb-2 text-lg font-semibold text-cream">Unsubscribe from emails?</h2>
+        <h2 className="mb-2 text-lg font-semibold text-cream">Unsubscribe?</h2>
         <p className="mb-6 text-sm text-subtle">
-          Stop receiving email notifications for <span className="font-medium text-cream">{info.taskName}</span>.
+          {displayEmail ? (
+            <>
+              Are you sure <span className="font-medium text-cream">{displayEmail}</span> wants to stop receiving emails for{" "}
+              <span className="font-medium text-cream">{info.taskName}</span>?
+            </>
+          ) : (
+            <>
+              Stop receiving all email notifications for{" "}
+              <span className="font-medium text-cream">{info.taskName}</span>?
+            </>
+          )}
         </p>
         <button
           onClick={handleUnsubscribe}
           disabled={status === "loading"}
           className="w-full rounded-full bg-brand py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
-          {status === "loading" ? "Unsubscribing..." : "Unsubscribe"}
+          {status === "loading" ? "Unsubscribing..." : "Yes, Unsubscribe"}
         </button>
         <p className="mt-4 text-xs text-muted">
           You can re-enable notifications anytime from your dashboard.
