@@ -1,6 +1,12 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
+function generateToken(): string {
+  return Array.from({ length: 32 }, () =>
+    Math.random().toString(36)[2]
+  ).join("");
+}
+
 export const getByTask = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, { taskId }) => {
@@ -35,10 +41,52 @@ export const upsert = mutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, { enabled, channels });
+      const patch: Record<string, unknown> = { enabled, channels };
+      if (!existing.unsubscribeToken) {
+        patch.unsubscribeToken = generateToken();
+      }
+      await ctx.db.patch(existing._id, patch);
     } else {
-      await ctx.db.insert("notificationPrefs", { taskId, enabled, channels });
+      await ctx.db.insert("notificationPrefs", {
+        taskId,
+        enabled,
+        channels,
+        unsubscribeToken: generateToken(),
+      });
     }
+  },
+});
+
+// Public query: look up notification info by unsubscribe token (no auth required)
+export const getByUnsubscribeToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const prefs = await ctx.db
+      .query("notificationPrefs")
+      .withIndex("by_unsubscribeToken", (q) => q.eq("unsubscribeToken", token))
+      .first();
+    if (!prefs) return null;
+
+    const task = await ctx.db.get(prefs.taskId);
+    return {
+      taskName: task?.name ?? "Unknown task",
+      enabled: prefs.enabled,
+    };
+  },
+});
+
+// Public mutation: disable notifications by unsubscribe token (no auth required)
+export const unsubscribeByToken = mutation({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const prefs = await ctx.db
+      .query("notificationPrefs")
+      .withIndex("by_unsubscribeToken", (q) => q.eq("unsubscribeToken", token))
+      .first();
+    if (!prefs) return { success: false };
+
+    await ctx.db.patch(prefs._id, { enabled: false });
+    return { success: true };
   },
 });
 

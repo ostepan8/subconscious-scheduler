@@ -42,7 +42,10 @@ export default defineSchema({
     taskId: v.id("tasks"),
     enabled: v.boolean(),
     channels: v.any(),
-  }).index("by_task", ["taskId"]),
+    unsubscribeToken: v.optional(v.string()),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_unsubscribeToken", ["unsubscribeToken"]),
 
   conversations: defineTable({
     externalId: v.string(),

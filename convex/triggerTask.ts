@@ -378,6 +378,12 @@ async function sendNotificationsForTask(
     const rawText = extractResultText(result);
     const cleanText = rawText ? stripMarkdown(rawText) : null;
 
+    // Build unsubscribe link if token exists
+    const appUrl = process.env.APP_URL || "https://scheduler.subconscious.dev";
+    const unsubscribeUrl = prefs.unsubscribeToken
+      ? `${appUrl}/unsubscribe?token=${prefs.unsubscribeToken}`
+      : null;
+
     for (const channel of prefs.channels as any[]) {
       const shouldSend =
         (isSuccess && channel.onSuccess) || (isFailed && channel.onFailure);
@@ -400,6 +406,11 @@ async function sendNotificationsForTask(
           );
         } else {
           body = cleanText || "The task completed but returned no output.";
+        }
+
+        // Append unsubscribe footer
+        if (unsubscribeUrl) {
+          body += `\n\n---\nDon't want these emails? Unsubscribe: ${unsubscribeUrl}`;
         }
 
         await fetch("https://api.resend.com/emails", {
