@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useConvexAuth } from "convex/react";
+import { useRouter } from "next/navigation";
 import OnboardingWizard from "@/components/OnboardingWizard";
 import {
   ArrowRight,
@@ -12,10 +13,18 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const { isLoading } = useConvexAuth();
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const router = useRouter();
   const [showWizard, setShowWizard] = useState(false);
 
-  if (isLoading) {
+  // Authenticated users go straight to their tasks dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/dashboard/tasks");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || isAuthenticated) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
