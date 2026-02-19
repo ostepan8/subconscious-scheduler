@@ -208,7 +208,6 @@ export default function OnboardingWizard() {
   const [authFlow, setAuthFlow] = useState<"signUp" | "signIn">("signUp");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
-  const [awaitingAuth, setAwaitingAuth] = useState(false);
 
   /* ── Refs ── */
   const nameRef = useRef<HTMLInputElement>(null);
@@ -333,6 +332,19 @@ export default function OnboardingWizard() {
         return;
       }
 
+      // Save task to sessionStorage so it survives the auth redirect
+      sessionStorage.setItem("subconscious:pending-task", JSON.stringify({
+        name: name.trim(),
+        prompt: prompt.trim(),
+        schedule: finalSchedule.trim(),
+        engine: DEFAULT_ENGINE,
+        tools: DEFAULT_TOOLS,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        notifyEmail: notifyEmail.trim(),
+        notifyOnSuccess,
+        notifyOnFailure,
+      }));
+
       try {
         const formData = new FormData();
         formData.set("email", authEmail);
@@ -359,9 +371,10 @@ export default function OnboardingWizard() {
         }
 
         if (result.signingIn) {
-          // Auth succeeded — useEffect will call doCreateTask when isAuthenticated flips
-          setAwaitingAuth(true);
+          // Auth succeeded — redirect will pick up the pending task from sessionStorage
+          return;
         } else {
+          sessionStorage.removeItem("subconscious:pending-task");
           setError("Authentication failed. Please try again.");
           setIsSubmitting(false);
         }
@@ -381,24 +394,17 @@ export default function OnboardingWizard() {
               ),
             ]);
             if (retryResult.signingIn) {
-              setAwaitingAuth(true);
+              // Auth succeeded — redirect will pick up the pending task
               return;
             }
           } catch { /* fall through to original error */ }
         }
+        sessionStorage.removeItem("subconscious:pending-task");
         setError(getAuthError(err, authFlow));
         setIsSubmitting(false);
       }
     }
   }
-
-  /* ── Post-auth task creation ── */
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!isAuthenticated || !awaitingAuth) return;
-    setAwaitingAuth(false);
-    doCreateTask();
-  }, [isAuthenticated, awaitingAuth]);
 
   /* ═══════════════════════════════════════════════════════ */
   /* ═══ RENDER                                         ═══ */

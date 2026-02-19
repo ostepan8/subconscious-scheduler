@@ -1,6 +1,8 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useEffect, useRef } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { useRouter } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import TaskCard from "@/components/TaskCard";
 import EmptyState from "@/components/EmptyState";
@@ -10,6 +12,52 @@ import { Activity, AlertTriangle, Zap } from "lucide-react";
 export default function TasksPage() {
   const tasks = useQuery(api.tasks.list);
   const stats = useQuery(api.tasks.stats);
+  const createTask = useMutation(api.tasks.create);
+  const upsertNotifs = useMutation(api.notificationPrefs.upsert);
+  const router = useRouter();
+  const pendingHandled = useRef(false);
+
+  // Pick up any pending task from onboarding (saved before auth redirect)
+  useEffect(() => {
+    if (pendingHandled.current) return;
+    const raw = sessionStorage.getItem("subconscious:pending-task");
+    if (!raw) return;
+    pendingHandled.current = true;
+    sessionStorage.removeItem("subconscious:pending-task");
+
+    const data = JSON.parse(raw);
+    (async () => {
+      try {
+        const taskId = await createTask({
+          name: data.name,
+          prompt: data.prompt,
+          schedule: data.schedule,
+          engine: data.engine,
+          tools: data.tools,
+          timezone: data.timezone,
+        });
+
+        if (data.notifyEmail) {
+          await upsertNotifs({
+            taskId,
+            enabled: true,
+            channels: [{
+              channel: "resend" as const,
+              to: data.notifyEmail,
+              onSuccess: data.notifyOnSuccess,
+              onFailure: data.notifyOnFailure,
+              includeResult: true,
+              customBody: "{{...agentResponse}}",
+            }],
+          }).catch(() => {});
+        }
+
+        router.push(`/dashboard/tasks/${taskId}`);
+      } catch {
+        // Task creation failed — user can create manually
+      }
+    })();
+  }, [createTask, upsertNotifs, router]);
 
   const isLoading = tasks === undefined;
 
